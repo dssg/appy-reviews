@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 """
 import os
 
+import dj_database_url
+
 
 def bool_environ(key, default=''):
     value = os.getenv(key, default).lower()
@@ -46,6 +48,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'review',
 ]
 
 MIDDLEWARE = [
@@ -82,11 +86,19 @@ WSGI_APPLICATION = 'project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.0/ref/settings/#databases
 
+DATABASE_SCHEMA = 'appy_reviews'
+DATABASE_URL = os.getenv('DATABASE_URL')
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
+    # Reads from environment variable DATABASE_URL
+    # E.g., for production:
+    #   postgres://appy_reviews:PASSWORD@postgres.dssg.io/appy_reviews
+    'default': dict(
+        dj_database_url.config(),
+        OPTIONS={
+            'options': f'-c search_path={DATABASE_SCHEMA}',
+        },
+    ),
 }
 
 

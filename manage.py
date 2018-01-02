@@ -6,8 +6,16 @@ from plumbum import local
 
 
 ROOT_PATH = Path(__file__).parent.resolve()
+SRC_PATH = ROOT_PATH / 'src'
 
-DOCKER_RUN = local['docker']['run']
+DOCKER = local['docker']
+ICMD = DOCKER[
+    'run',
+    '--rm',
+    '--net=host',
+    '-v', f'{SRC_PATH}:/app',
+    'appyreviews_web',
+]
 
 
 class Appy(RootCommand):
@@ -18,7 +26,20 @@ class Appy(RootCommand):
 class Etl(Command):
     """manage survey data"""
 
-    class Bootstrap(Command):
+    class Apps(Command):
+        """map wufoo data into appy"""
+
+        def __call__(self, args):
+            ICMD(
+                'env',
+                'DATABASE_URL=' + os.environ['DATABASE_URL'],
+                './manage.py',
+                'loadapps',
+                '-s', '_2018',
+                '-y', '2018',
+            )
+
+    class Wufoo(Command):
         """load initial survey data"""
 
         EXAMPLE_DATABASE_URL = 'postgres://appy_reviews:PASSWORD@localhost:5433/appy_reviews'
@@ -57,15 +78,13 @@ class Etl(Command):
                     '\tWUFOO_API_KEY=xx-xx-xx DATABASE_URL=... manage etl bootstrap'
                 )
 
-            src_path = ROOT_PATH / 'src'
             target = 'output' if args.csv_cache else '-'
-            DOCKER_RUN(
-                '--rm',
-                '--net=host',
-                '-v', f'{src_path}:/app',
-                'appyreviews_web',
-                'env', f'DATABASE_URL={database_url}', 'WUFOO_API_KEY=$WUFOO_API_KEY',
-                './manage.py', 'loadwufoo',
+            ICMD(
+                'env',
+                f'DATABASE_URL={database_url}',
+                'WUFOO_API_KEY=$WUFOO_API_KEY',
+                './manage.py',
+                'loadwufoo',
                 '-f', '"^2018 "',
                 target,
             )

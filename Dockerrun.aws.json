@@ -1,0 +1,12 @@
+{
+  "AWSEBDockerrunVersion": "1",
+  "Image": {
+    "Name": "093198349272.dkr.ecr.us-west-2.amazonaws.com/dsapp/appy-reviews/web:latest",
+    "Update": true
+  },
+  "Ports": [
+    {
+      "ContainerPort": "8000"
+    }
+  ]
+}

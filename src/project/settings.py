@@ -36,7 +36,11 @@ SECRET_KEY = '2n3(z!1*qc(&*-7((1$myom)7oyn@pr!348s&unjxr7-9-npm('
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool_environ('APPY_DEBUG')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'pro-reviews-dssg.us-west-2.elasticbeanstalk.com',
+    'dev-reviews-dssg.us-west-2.elasticbeanstalk.com',
+    'reviews.dssg.io',
+]
 
 
 # Application definition

@@ -1,3 +1,4 @@
+import argparse
 import os
 from pathlib import Path
 
@@ -79,29 +80,158 @@ class Build(Local):
             return self.local['eb']['deploy']
 
 
-@Appy.register
-class Etl(Local):
-    """manage survey data"""
+class LocalContainer(Local):
 
-    @cachedclassproperty
-    def icmd(cls):
+    @classmethod
+    def run(cls, *args, **kwargs):
         docker = cls.local['docker']
         return docker[
             'run',
             '--rm',
             '--net=host',
             '-v', f'{SRC_PATH}:/app',
-            'appyreviews_web',
-        ]
+        ].bound_command(
+            *args
+        ).bound_command(
+            *(
+                f'-e{key}' if value is None else f'-e{key}={value}'
+                for (key, value) in kwargs.items()
+            )
+        )['appyreviews_web']
+
+
+class DbLocal(LocalContainer):
+
+    EXAMPLE_DATABASE_URL = 'postgres://appy_reviews:PASSWORD@localhost:5433/appy_reviews'
+
+    @classmethod
+    def get_database_url(cls, args):
+        if args.database_url:
+            return args.database_url
+
+        if os.getenv('DATABASE_URL'):
+            return None
+
+        args.__parser__.error(
+            'DATABASE_URL must be specified by argument or environment\n\n'
+            'For example:\n'
+            f'\tmanage db --database-url={cls.EXAMPLE_DATABASE_URL}\n'
+            'or:\n'
+            f'\tDATABASE_URL={cls.EXAMPLE_DATABASE_URL} manage db'
+        )
+
+    @classmethod
+    def manage(cls, args, **kwargs):
+        return cls.run(
+            DATABASE_URL=cls.get_database_url(args),
+            **kwargs
+        )['./manage.py']
+
+    def __init__(self, parser):
+        parser.add_argument(
+            '--db', '--database-url',
+            dest='database_url',
+            metavar='database-url',
+            help=f"Database URL (e.g.: {self.EXAMPLE_DATABASE_URL})",
+        )
+
+
+@Appy.register
+class Develop(DbLocal):
+
+    DEFAULT_NAMETAG = 'appyreviews_web_1'
+
+    def __init__(self, parser):
+        super().__init__(parser)
+
+        parser.add_argument(
+            '-n', '--name',
+            default=self.DEFAULT_NAMETAG,
+            help=f'Image name/tag (default: {self.DEFAULT_NAMETAG})',
+        )
+        parser.add_argument(
+            '-b', '--build',
+            action='store_true',
+        )
+
+    def prepare(self, args):
+        if args.build:
+            yield self.local['docker'][
+                'build',
+                '--build-arg', 'TARGET=development',
+                '-t', 'appyreviews_web',
+                ROOT_PATH,
+            ]
+
+        yield self.run(
+            '-d',
+            '--name', args.name,
+            DATABASE_URL=self.get_database_url(args),
+            APPY_DEBUG=1,
+        )
+
+    class Ctl(Local):
+
+        commands = ('start', 'stop', 'restart')
+
+        def __init__(self, parser):
+            parser.add_argument(
+                'mcmd',
+                metavar='command',
+                choices=self.commands,
+                help="{{{}}}".format(', '.join(self.commands)),
+            )
+
+        def prepare(self, args):
+            return self.local['docker'][
+                'exec',
+                '-it',
+                args.name,
+                'supervisorctl',
+                '-c',
+                '/etc/supervisor/supervisord.conf',
+                args.mcmd,
+                'webapp',
+            ]
+
+
+@Appy.register
+class Db(DbLocal):
+    """manage database via local container"""
+
+    commands = (
+        'showmigrations',
+        'migrate',
+    )
+
+    def __init__(self, parser):
+        super().__init__(parser)
+
+        parser.add_argument(
+            'mcmd',
+            metavar='command',
+            choices=self.commands,
+            help="{{{}}}".format(', '.join(self.commands)),
+        )
+        parser.add_argument(
+            'remainder',
+            metavar='command arguments',
+            nargs=argparse.REMAINDER,
+        )
+
+    def prepare(self, args):
+        return self.manage(args)[args.mcmd, args.remainder]
+
+
+@Appy.register
+class Etl(DbLocal):
+    """manage survey data"""
 
     class Apps(Local):
         """map wufoo data into appy"""
 
         def prepare(self, args):
-            return Etl.icmd[
-                'env',
-                'DATABASE_URL=' + os.environ['DATABASE_URL'],
-                './manage.py',
+            return Etl.manage(args)[
                 'loadapps',
                 '-s', '_2018',
                 '-y', '2018',
@@ -109,8 +239,6 @@ class Etl(Local):
 
     class Wufoo(Local):
         """load initial survey data"""
-
-        EXAMPLE_DATABASE_URL = 'postgres://appy_reviews:PASSWORD@localhost:5433/appy_reviews'
 
         def __init__(self, parser):
             parser.add_argument(
@@ -120,25 +248,8 @@ class Etl(Local):
                 dest='csv_cache',
                 help="cache data in local CSV files",
             )
-            parser.add_argument(
-                '--database-url',
-                help=f"Database URL (e.g.: {self.EXAMPLE_DATABASE_URL})",
-            )
 
         def prepare(self, args):
-            if args.database_url:
-                database_url = args.database_url
-            elif os.getenv('DATABASE_URL'):
-                database_url = '$DATABASE_URL'
-            else:
-                args.__parser__.error(
-                    'DATABASE_URL must be specified by argument or environment\n\n'
-                    'For example:\n'
-                    f'\tmanage etl bootstrap --database-url={self.EXAMPLE_DATABASE_URL}\n'
-                    'or:\n'
-                    f'\tDATABASE_URL={self.EXAMPLE_DATABASE_URL} WUFOO_API_KEY=xx-xx-xx manage etl bootstrap'
-                )
-
             if not os.getenv('WUFOO_API_KEY'):
                 args.__parser__.error(
                     'WUFOO_API_KEY must be specified by environment\n\n'
@@ -146,14 +257,12 @@ class Etl(Local):
                     '\tWUFOO_API_KEY=xx-xx-xx DATABASE_URL=... manage etl bootstrap'
                 )
 
-            target = 'output' if args.csv_cache else '-'
-            return Etl.icmd[
-                'env',
-                f'DATABASE_URL={database_url}',
-                'WUFOO_API_KEY=$WUFOO_API_KEY',
-                './manage.py',
+            return Etl.manage(
+                args,
+                WUFOO_API_KEY=None,
+            )[
                 'loadwufoo',
                 '-f', '"^2018 "',
                 '-s', '2018-stream',
-                target,
+                ('output' if args.csv_cache else '-'),
             ]

@@ -1,9 +1,13 @@
+import re
+
 from django.contrib import auth
 from django.contrib.auth import models as auth_models
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.core.mail import send_mail
-from django.db import models
+from django.db import connection, models
 from django.utils import timezone
+
+from descriptors import cachedproperty
 
 
 #
@@ -107,6 +111,14 @@ class ReviewerManager(BaseUserManager):
         reviewer.save(using=self._db)
         return reviewer
 
+    # For compatibility with Django Admin site
+    def create_trusted(self, *args, **extra_fields):
+        if not extra_fields.setdefault('trusted', True):
+            raise TypeError("Cannot create untrusted superuser")
+        return self.create_reviewer(*args, **extra_fields)
+
+    create_superuser = create_trusted
+
 
 class Reviewer(AbstractBaseUser, PermissionsMixin):
 
@@ -158,6 +170,11 @@ class Reviewer(AbstractBaseUser, PermissionsMixin):
     def email_user(self, subject, message, from_email=None, **kwargs):
         """Send an email to this user."""
         send_mail(subject, message, from_email, [self.email], **kwargs)
+
+    # For compatibility with Django Admin site
+    @property
+    def is_staff(self):
+        return self.trusted
 
 
 #
@@ -218,6 +235,40 @@ class SurveyEntry(models.Model):
         unique_together = (
             ('table_name', 'column_name', 'entity_code'),
         )
+
+    @cachedproperty
+    def entry(self):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f'''
+                    select * from "{self.table_name}"
+                    where "{self.table_name}"."{self.column_name}"=%(entity_code)s
+                ''',
+                {
+                    'entity_code': self.entity_code,
+                },
+            )
+            columns = [col[0] for col in cursor.description]
+            row = cursor.fetchone()
+
+            if cursor.fetchone() is not None:
+                raise self.MultipleObjectsReturned
+
+            cursor.execute(
+                '''select field_id, field_title from "{table_name}"'''
+                .format(table_name=re.sub(r'(_\d{4})$',
+                                          r'_fields\1',
+                                          self.table_name))
+            )
+            fields = dict(cursor)
+
+        return {
+            fields.get(column, column): value
+            for (column, value) in zip(columns, row)
+        }
+
+    def __str__(self):
+        return str(self.entry)
 
 
 class ApplicationPage(SurveyEntry):

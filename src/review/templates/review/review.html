@@ -1,0 +1,19 @@
+<html>
+    <body>
+        <h2>Review an application to DSSG {{ application.program_year }}</h2>
+
+        <h3>Pages</h3>
+        {% for page in application.applicationpage_set.all %}
+        {% include "review/includes/surveyentry_detail.html" with surveyentry=page only %}
+        {% empty %}
+        (none)
+        {% endfor %}
+
+        <h3>References</h3>
+        {% for reference in application.reference_set.all %}
+        {% include "review/includes/surveyentry_detail.html" with surveyentry=reference only %}
+        {% empty %}
+        (none)
+        {% endfor %}
+    </body>
+</html>

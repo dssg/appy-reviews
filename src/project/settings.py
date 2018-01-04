@@ -36,23 +36,55 @@ SECRET_KEY = '2n3(z!1*qc(&*-7((1$myom)7oyn@pr!348s&unjxr7-9-npm('
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool_environ('APPY_DEBUG')
 
-ALLOWED_HOSTS = [
-    'pro-reviews-dssg.us-west-2.elasticbeanstalk.com',
-    'dev-reviews-dssg.us-west-2.elasticbeanstalk.com',
-    'reviews.dssg.io',
-]
+if not DEBUG:
+    ALLOWED_HOSTS = [
+        'pro-reviews-dssg.us-west-2.elasticbeanstalk.com',
+        'dev-reviews-dssg.us-west-2.elasticbeanstalk.com',
+        'reviews.dssg.io',
+    ]
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    #
+    # Django "contrib"
+    #
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
 
+    #
+    # 3rd-party
+    #
+    # allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    # allauth enabled providers
+    # 'allauth.socialaccount.providers.amazon',
+    # 'allauth.socialaccount.providers.bitbucket',
+    # 'allauth.socialaccount.providers.bitbucket_oauth2',
+    # 'allauth.socialaccount.providers.facebook',
+    'allauth.socialaccount.providers.github',
+    # 'allauth.socialaccount.providers.gitlab',
+    # 'allauth.socialaccount.providers.google', # TODO
+    # 'allauth.socialaccount.providers.linkedin',
+    # 'allauth.socialaccount.providers.linkedin_oauth2',
+    # 'allauth.socialaccount.providers.openid',
+    # 'allauth.socialaccount.providers.reddit',
+    # 'allauth.socialaccount.providers.slack',
+    # 'allauth.socialaccount.providers.stackexchange',
+    # 'allauth.socialaccount.providers.trello',
+    # 'allauth.socialaccount.providers.twitter',
+
+    #
+    # our apps
+    #
     'review',
 ]
 
@@ -67,6 +99,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'project.urls'
+
+SITE_ID = 1
 
 TEMPLATES = [
     {
@@ -126,6 +160,26 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# allauth
+
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # TODO: test
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
+ACCOUNT_PRESERVE_USERNAME_CASING = False
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_USERNAME_REQUIRED = False
+
+# review
+
+REVIEW_PROGRAM_YEAR = 2018
+REVIEW_SURVEY_LENGTH = 2
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/

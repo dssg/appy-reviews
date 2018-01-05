@@ -44,6 +44,15 @@ class PermissionsMixin(models.Model):
     class Meta:
         abstract = True
 
+    # For compatibility with Django Admin site
+    @property
+    def is_superuser(self):
+        return self.trusted
+
+    @property
+    def user_permissions(self):
+        return self.permissions
+
     def get_group_permissions(self, obj=None):
         """Return a list of permission strings that this reviewer has
         through their groups.

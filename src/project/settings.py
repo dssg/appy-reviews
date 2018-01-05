@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 import os
 
 import dj_database_url
+import requests
+from django.utils.log import DEFAULT_LOGGING
 
 
 def bool_environ(key, default=''):
@@ -36,12 +38,27 @@ SECRET_KEY = '2n3(z!1*qc(&*-7((1$myom)7oyn@pr!348s&unjxr7-9-npm('
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool_environ('APPY_DEBUG')
 
-if not DEBUG:
+if DEBUG:
+    EC2_PRIVATE_IP = None
+else:
     ALLOWED_HOSTS = [
         'pro-reviews-dssg.us-west-2.elasticbeanstalk.com',
         'dev-reviews-dssg.us-west-2.elasticbeanstalk.com',
-        'reviews.dssg.io',
+        'review.dssg.io',
     ]
+
+    try:
+        response = requests.get(
+            'http://169.254.169.254/latest/meta-data/local-ipv4',
+            timeout=0.01
+        )
+    except requests.exceptions.RequestException:
+        EC2_PRIVATE_IP = None
+    else:
+        EC2_PRIVATE_IP = response.text
+
+    if EC2_PRIVATE_IP:
+        ALLOWED_HOSTS.append(EC2_PRIVATE_IP)
 
 
 # Application definition
@@ -72,7 +89,7 @@ INSTALLED_APPS = [
     # 'allauth.socialaccount.providers.facebook',
     'allauth.socialaccount.providers.github',
     # 'allauth.socialaccount.providers.gitlab',
-    # 'allauth.socialaccount.providers.google', # TODO
+    'allauth.socialaccount.providers.google',
     # 'allauth.socialaccount.providers.linkedin',
     # 'allauth.socialaccount.providers.linkedin_oauth2',
     # 'allauth.socialaccount.providers.openid',
@@ -199,3 +216,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
+# Logging
+
+if not DEBUG:
+    LOGGING = DEFAULT_LOGGING.copy()
+    LOGGING['handlers']['console']['filters'] = ['require_debug_false']
+    LOGGING['loggers']['django.server']['propagate'] = True

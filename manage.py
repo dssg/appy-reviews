@@ -48,8 +48,16 @@ class Build(Local):
             action='store_true',
             help="deploy the container once the image is pushed",
         )
+        parser.add_argument(
+            '-l', '--login',
+            action='store_true',
+            help="log in to AWS ECR",
+        )
 
     def prepare(self, args):
+        if args.login and not args.push:
+            args.__parser__.error("will not log in outside of push operation")
+
         yield self.local['docker'][
             'build',
             '--build-arg', f'TARGET={args.target}',
@@ -59,7 +67,7 @@ class Build(Local):
         ]
 
         if args.push:
-            yield args.__children__.push.prepare(args)
+            yield from args.__children__.push.prepare(args)
 
         if args.deploy:
             yield args.__children__.deploy.prepare(args)
@@ -67,8 +75,30 @@ class Build(Local):
     class Push(Local):
         """push already-built image to registry"""
 
+        def __init__(self, parser):
+            parser.add_argument(
+                '-l', '--login',
+                action='store_true',
+                help="log in to AWS ECR",
+            )
+
         def prepare(self, args):
-            return self.local['docker'][
+            if args.login:
+                login_command = self.local['aws'][
+                    'ecr',
+                    'get-login',
+                    '--no-include-email',
+                    '--region', 'us-west-2',
+                ]
+                if args.show_commands:
+                    print('>', login_command)
+                if args.execute_commands:
+                    full_command = login_command()
+                    (executable, *arguments) = full_command.split()
+                    assert executable == 'docker'
+                    yield self.local[executable][arguments]
+
+            yield self.local['docker'][
                 'push',
                 Build.get_full_name(args.name),
             ]
@@ -138,7 +168,10 @@ class DbLocal(LocalContainer):
 
 @Appy.register
 class Develop(DbLocal):
+    """create the appy-reviews container in development mode and run it
+    in the background
 
+    """
     DEFAULT_NAMETAG = 'appyreviews_web_1'
 
     def __init__(self, parser):
@@ -152,6 +185,7 @@ class Develop(DbLocal):
         parser.add_argument(
             '-b', '--build',
             action='store_true',
+            help="(re-)build image before container creation",
         )
 
     def prepare(self, args):
@@ -170,7 +204,8 @@ class Develop(DbLocal):
             APPY_DEBUG=1,
         )
 
-    class Ctl(Local):
+    class Control(Local):
+        """control the appy-reviews supervisor process"""
 
         commands = ('start', 'stop', 'restart')
 
@@ -185,13 +220,37 @@ class Develop(DbLocal):
         def prepare(self, args):
             return self.local['docker'][
                 'exec',
-                '-it',
                 args.name,
                 'supervisorctl',
                 '-c',
                 '/etc/supervisor/supervisord.conf',
                 args.mcmd,
                 'webapp',
+            ]
+
+    class DjManage(Local):
+        """manage the appy-reviews django project"""
+
+        def __init__(self, parser):
+            parser.add_argument(
+                'mcmd',
+                metavar='command',
+                help="django management command",
+            )
+            parser.add_argument(
+                'remainder',
+                metavar='command arguments',
+                nargs=argparse.REMAINDER,
+            )
+
+        def prepare(self, args):
+            return self.local['docker'][
+                'exec',
+                '-it',
+                args.name,
+                './manage.py',
+                args.mcmd,
+                args.remainder,
             ]
 
 

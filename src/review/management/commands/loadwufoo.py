@@ -34,6 +34,9 @@ FORMS = (
     # application form(s)
     r'^(\d+) dssg fellowship (application)'
     r'(?:(?:[- ]+part)? (\d))?$',
+
+    # reviewer form
+    r'^(\d+) dssg application (reviewer) registration$',
 )
 
 ENTRY_PAGE_SIZE = 100  # (Also the API default)
@@ -86,7 +89,15 @@ class Command(BaseCommand):
             help="Append rows to any existing database tables (rather than overwrite).",
         )
 
-    def handle(self, target='.', filters=(), write_to_db=True, apply_suffix=True, suffix=None, append=False, **_options):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.verbosity = None
+
+    def handle(self, target='.', filters=(), write_to_db=True,
+               apply_suffix=True, suffix=None, append=False,
+               verbosity=1, **_options):
+        self.verbosity = verbosity
+
         if target == '-' and not write_to_db:
             raise CommandError("Can only write to standard I/O without database – nothing to do")
 
@@ -95,7 +106,7 @@ class Command(BaseCommand):
 
         for (year, name, form) in stream_forms(client, filters):
             entries = stream_entries(form)
-            fields = [(field.ID, field.Title) for field in form.fields]
+            fields = list(stream_fields(form))
 
             # Peak ahead for entry column names
             try:
@@ -109,11 +120,11 @@ class Command(BaseCommand):
             if target == '-':
                 data_paths = (None, None)
                 streams = (
-                    functools.partial(write_entries_csv, head, entries),
-                    functools.partial(write_fields_csv, head, fields),
+                    functools.partial(self.write_entries_csv, head, entries),
+                    functools.partial(self.write_fields_csv, head, fields),
                 )
             else:
-                data_paths = write_disk(target, name, head, entries, fields)
+                data_paths = self.write_disk(target, name, head, entries, fields)
                 streams = (None, None)
 
             # Write to database
@@ -145,47 +156,77 @@ class Command(BaseCommand):
                     if append:
                         load_command = load_command['--no-create']
                     else:
+                        self.report("tearing down existing database table:", table_name)
+
                         # Tear down existing table first
                         with connection.cursor() as cursor:
-                            cursor.execute(f"drop table {table_name}")
+                            cursor.execute(f'drop table "{table_name}"')
 
                 if data_path:
                     load_command(data_path)
                 else:
-                    # TODO: test
-                    with load_command.popen('-', stdin=subprocess.PIPE) as load_process:
-                        stream(load_process.stdin)
+                    self.report("streaming to database table:", table_name)
+                    load_process = load_command.popen(
+                        '-',
+                        stdin=subprocess.PIPE,
+                        encoding='utf-8',
+                    )
+                    with load_process.stdin as pipe:
+                        stream(pipe)
+                    try:
+                        load_process.wait(60)
+                    except subprocess.TimeoutExpired:
+                        load_process.kill()
+                        raise
+
+    def report(self, *contents, minlevel=2):
+        if self.verbosity >= minlevel:
+            self.stdout.write(' '.join(str(item) for item in contents))
+
+    def write_entries_csv(self, head, entries, outfile):
+        writer = csv.DictWriter(outfile, tuple(head))
+        writer.writeheader()
+        for (count, entry) in enumerate(entries, 1):
+            writer.writerow(entry)
+
+        self.report("\twriting entries to database:", count)
+
+    def write_fields_csv(self, head, fields, outfile):
+        writer = csv.writer(outfile, lineterminator=os.linesep)
+        writer.writerow(['field_id', 'field_title'])
+        for (count, (field_id, field_title)) in enumerate(fields, 1):
+            if field_id and field_id in head:
+                writer.writerow([field_id, field_title])
+
+        self.report("\twriting fields to database:", count)
+
+    def write_disk(self, target, name, head, entries, fields):
+        """Write CSV to disk."""
+        data_file_name = name + '.csv'
+        data_path = pathlib.Path(target) / data_file_name
+        with data_path.open('w') as outfile:
+            if head is not None:
+                self.write_entries_csv(head, entries, outfile)
+
+        field_file_name = name + '_fields.csv'
+        field_path = pathlib.Path(target) / field_file_name
+        with field_path.open('w') as outfile:
+            if head is not None:
+                self.write_fields_csv(head, fields, outfile)
+
+        return (data_path, field_path)
 
 
-def write_entries_csv(head, entries, outfile):
-    writer = csv.DictWriter(outfile, tuple(head))
-    writer.writeheader()
-    writer.writerows(entries)
+def stream_fields(form):
+    for field in form.fields:
 
+        if field.SubFields:
+            for subfield in field.SubFields:
+                yield (subfield.ID, subfield.Label)
 
-def write_fields_csv(head, fields, outfile):
-    writer = csv.writer(outfile, lineterminator=os.linesep)
-    writer.writerow(['field_id', 'field_title'])
-    for (field_id, field_title) in fields:
-        if field_id and field_id in head:
-            writer.writerow([field_id, field_title])
+            continue
 
-
-def write_disk(target, name, head, entries, fields):
-    """Write CSV to disk."""
-    data_file_name = name + '.csv'
-    data_path = pathlib.Path(target) / data_file_name
-    with data_path.open('w') as outfile:
-        if head is not None:
-            write_entries_csv(head, entries, outfile)
-
-    field_file_name = name + '_fields.csv'
-    field_path = pathlib.Path(target) / field_file_name
-    with field_path.open('w') as outfile:
-        if head is not None:
-            write_fields_csv(head, fields, outfile)
-
-    return (data_path, field_path)
+        yield (field.ID, field.Title)
 
 
 def stream_entries(form, page_size=ENTRY_PAGE_SIZE):
@@ -214,6 +255,10 @@ def stream_forms(client, filters=(), name_expressions=FORMS):
                     # This is our form!
                     (year, *names) = match.groups()
                     name = '_'.join(names).lower()
+                    assert name, (
+                        "Failed to capture form name from identifying regular "
+                        f"expression {name_expression!r}"
+                    )
                     yield (year, name, form)
 
                 # No need to continue with this form

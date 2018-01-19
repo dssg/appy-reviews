@@ -2,6 +2,25 @@
     <body>
         <h2>Review an application to DSSG {{ application.program_year }}</h2>
 
+        <h3>Enter your review</h3>
+        {{ review_form.non_field_errors }}
+        <form>
+            {% csrf_token %}
+            <ul>
+            {% for field in review_form %}
+            <li>
+                {{ field.errors }}
+                {% if field.help_text %}
+                <label for="{{ field.id_for_label }}">{{ field.help_text }}</label>
+                {% else %}{{ field.label_tag }}
+                {% endif %}
+                {{ field }}
+            </li>
+            {% endfor %}
+            </ul>
+            <input type="submit" value="Submit">
+        </form>
+
         <h3>Pages</h3>
         {% for page in application.applicationpage_set.all %}
         {% include "review/includes/surveyentry_detail.html" with surveyentry=page only %}

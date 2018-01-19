@@ -1,3 +1,4 @@
+import enum
 import re
 
 from django.contrib import auth
@@ -5,9 +6,42 @@ from django.contrib.auth import models as auth_models
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.core.mail import send_mail
 from django.db import connection, models
+from django.db.models import fields
 from django.utils import timezone
 
 from descriptors import cachedproperty
+
+
+class EnumCharField(fields.CharField):
+
+    def __init__(self, enum, **kws):
+        if 'choices' in kws:
+            raise TypeError("Unexpected keyword argument 'choices'")
+
+        try:
+            choices = enum.__members__.items()
+        except AttributeError:
+            choices = enum
+
+        kws.setdefault(
+            'max_length',
+            max((len(name) for (name, _value) in choices), default=0)
+        )
+
+        super().__init__(choices=choices, **kws)
+
+    def deconstruct(self):
+        """Return a suitable description of this field for migrations.
+
+        """
+        (name, path, args, kwargs) = super().deconstruct()
+
+        del kwargs['max_length']
+        choices = [
+            (key, str(member)) for (key, member) in kwargs.pop('choices')
+        ]
+
+        return (name, path, [choices] + args, kwargs)
 
 
 #
@@ -306,12 +340,49 @@ class Review(models.Model):
     reviewer = models.ForeignKey('review.Reviewer', on_delete=models.CASCADE)
     application = models.ForeignKey('review.Application', on_delete=models.CASCADE)
     submitted = models.DateTimeField(auto_now_add=True)
-    comments = models.TextField()  # FIXME
-
-    # TODO
+    comments = models.TextField(
+        blank=True,
+        help_text="Any comments on your recommendation?",
+    )
+    interview_suggestions = models.TextField(
+        blank=True,
+        help_text="In an interview with this candidate, what should we focus on? "
+                  "Any red flags? Anything you would ask them about that's hard to "
+                  "judge from the application and references?",
+    )
+    would_interview = models.BooleanField(
+        help_text="Would you like to interview this applicant?",
+    )
 
     class Meta:
         db_table = 'review'
         unique_together = (
             ('application', 'reviewer'),
+        )
+
+
+class Rating(models.Model):
+
+    class Label(str, enum.Enum):
+
+        programming = "Programming Ability"
+        machine_learning = "Stats/Machine Learning Ability"
+        data_handling = "Data Handling/Manipulation Skills"
+        interest_in_good = "Interest in Social Good"
+        communication = "Communication Ability"
+        teamwork = "Would this person work well in a team?"
+        overall = "Overall Recommendation"
+
+        def __str__(self):
+            return self.value
+
+    rating_id = models.AutoField(primary_key=True)
+    review = models.ForeignKey('review.Review', on_delete=models.CASCADE)
+    label = EnumCharField(Label)
+    score = models.IntegerField()
+
+    class Meta:
+        db_table = 'review_rating'
+        unique_together = (
+            ('review', 'label'),
         )

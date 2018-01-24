@@ -74,6 +74,8 @@ def apps_to_review(reviewer):
         decision='',
         program_year=settings.REVIEW_PROGRAM_YEAR,
         page_count=settings.REVIEW_SURVEY_LENGTH,
+    ).exclude(
+        review__reviewer=reviewer,
     ).order_by(
         'review_count',
     )

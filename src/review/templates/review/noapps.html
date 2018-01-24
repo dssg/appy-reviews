@@ -1,8 +1,14 @@
-<html>
-    <body>
-        <h2>No applications to review!</h2>
-        
-        <p>Thanks, {{ user.first_name|default:user.email }}.</p>
-        <p>There are no more applications to DSSG for you to review for {{ program_year }}.</p>
-    </body>
-</html>
+{% extends "review/site.html" %}
+{% block body %}
+    <h2>No applications to review!</h2>
+    
+    <p>Thanks, {{ user.first_name|default:user.email }}.</p>
+
+    {% if review_count > 0 %}
+    <p>
+        {% include "review/includes/submission-count.html" with count=review_count only %}
+    </p>
+    {% endif %}
+
+    <p>There are no {% if review_count > 0 %}more {% endif %}applications to DSSG for you to review for {{ program_year }}.</p>
+{% endblock %}

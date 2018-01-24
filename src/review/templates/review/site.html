@@ -1,0 +1,75 @@
+<html>
+    <head>
+        <title>{% block title %}DSSG application reviews{% endblock %}</title>
+        <style>
+            /* section body */
+
+            body {
+                font-family: "Helvetica Neue",Helvetica,Arial,Verdana,Tahoma;
+            }
+
+            /* end body */
+
+            /* section general */
+
+            .serif {
+                font-family: Bookman,"Times New Roman",Times;
+            }
+
+            ul.basic {
+                list-style: none;
+                padding: 0;
+            }
+
+            dl.formatted {
+                display: flex;
+                flex-flow: row;
+                flex-wrap: wrap;
+                width: 100%; /* set the container width*/
+                overflow: visible;
+            }
+            dl.formatted dt {
+                flex: 0 0 50%;
+                text-overflow: ellipsis;
+                overflow: hidden;
+            }
+            dl.formatted dd {
+                margin-left: auto;
+                text-align: left;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                flex: 0 0 50%;
+            }
+
+            /* end general */
+
+            /* section django */
+
+            .errorlist {
+                font-weight: bold;
+                color: red;
+            }
+
+            ul.messages {
+                list-style: none;
+                margin-left: 0;
+                padding-left: 1.2em;
+                text-indent: -1.2em;
+            }
+
+            .messages li.success:before {
+                content: "👌";
+                display: block;
+                float: left;
+                width: 1.5em;
+            }
+
+            /* end django */
+        </style>
+
+        {% block head %}{% endblock %}
+    </head>
+    <body>
+        {% block body %}{% endblock %}
+    </body>
+</html>

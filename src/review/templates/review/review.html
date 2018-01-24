@@ -1,231 +1,180 @@
-{% load review %}
-<html>
-    <head>
-        <title>Review an application to DSSG {{ application.program_year }}</title>
-        <style>
-            /* section general */
+{% extends "review/site.html" %}
 
-            ul.basic {
-                list-style: none;
-                padding: 0;
-            }
+{% block title %}
+Review an application to DSSG {{ application.program_year }}
+{% endblock %}
 
-            dl.formatted {
-                display: flex;
-                flex-flow: row;
-                flex-wrap: wrap;
-                width: 100%; /* set the container width*/
-                overflow: visible;
-            }
-            dl.formatted dt {
-                flex: 0 0 50%;
-                text-overflow: ellipsis;
-                overflow: hidden;
-            }
-            dl.formatted dd {
-                margin-left: auto;
-                text-align: left;
-                text-overflow: ellipsis;
-                overflow: hidden;
-                flex: 0 0 50%;
-            }
+{% block head %}
+    <style>
+        /* section review */
 
-            /* end general */
+        #review li {
+            margin: 2px;
+            padding: 5px;
+        }
+        #review label {
+            font-weight: bold;
+        }
 
-            /* section django */
+        /* end review */
 
-            .errorlist {
-                font-weight: bold;
-                color: red;
-            }
+        /* section ratings */
 
-            ul.messages {
-                list-style: none;
-                margin-left: 0;
-                padding-left: 1.2em;
-                text-indent: -1.2em;
-            }
+        .rating {
+            display: inline;
+            min-width: 300px;
+            border-width: 1px;
+        }
 
-            .messages li.success:before {
-                content: "👌";
-                display: block;
-                float: left;
-                width: 1.5em;
-            }
+        .rating legend {
+            font-weight: bold;
+        }
 
-            /* end django */
+        /* :not(:checked) is a filter, so that browsers that don’t support :checked don’t 
+        follow these rules. Every browser that supports :checked also supports :not(), so
+        it doesn’t make the test unnecessarily selective */
+        .rating:not(:checked) > input {
+            position:absolute;
+            top:-9999px;
+            clip:rect(0,0,0,0);
+        }
 
-            /* section review */
+        .rating:not(:checked) > label {
+            float:right;
+            width:1em;
+            padding:0 .1em;
+            overflow:hidden;
+            white-space:nowrap;
+            cursor:pointer;
+            font-size:200%;
+            line-height:1.2;
+            color:#ddd;
+            text-shadow:1px 1px #bbb, 2px 2px #666, .1em .1em .2em rgba(0,0,0,.5);
+            font-weight: inherit;
+        }
 
-            #review li {
-                margin: 2px;
-                padding: 5px;
-            }
-            #review label {
-                font-weight: bold;
-            }
+        .rating:not(:checked) > label:before {
+            content: '★ ';
+        }
 
-            /* end review */
+        .rating > input:checked ~ label {
+            color: #f70;
+            text-shadow:1px 1px #c60, 2px 2px #940, .1em .1em .2em rgba(0,0,0,.5);
+        }
 
-            /* section ratings */
+        .rating:not(:checked) > label:hover,
+        .rating:not(:checked) > label:hover ~ label {
+            color: gold;
+            text-shadow:1px 1px goldenrod, 2px 2px #B57340, .1em .1em .2em rgba(0,0,0,.5);
+        }
 
-            .rating {
-                display: inline;
-                min-width: 300px;
-                border-width: 1px;
-            }
+        .rating > input:checked + label:hover,
+        .rating > input:checked + label:hover ~ label,
+        .rating > input:checked ~ label:hover,
+        .rating > input:checked ~ label:hover ~ label,
+        .rating > label:hover ~ input:checked ~ label {
+            color: #ea0;
+            text-shadow:1px 1px goldenrod, 2px 2px #B57340, .1em .1em .2em rgba(0,0,0,.5);
+        }
 
-            .rating legend {
-                font-weight: bold;
-            }
+        .rating > label:active {
+            position:relative;
+            top:2px;
+            left:2px;
+        }
 
-            /* :not(:checked) is a filter, so that browsers that don’t support :checked don’t 
-            follow these rules. Every browser that supports :checked also supports :not(), so
-            it doesn’t make the test unnecessarily selective */
-            .rating:not(:checked) > input {
-                position:absolute;
-                top:-9999px;
-                clip:rect(0,0,0,0);
-            }
+        /* end ratings */
+    </style>
+{% endblock %}
 
-            .rating:not(:checked) > label {
-                float:right;
-                width:1em;
-                padding:0 .1em;
-                overflow:hidden;
-                white-space:nowrap;
-                cursor:pointer;
-                font-size:200%;
-                line-height:1.2;
-                color:#ddd;
-                text-shadow:1px 1px #bbb, 2px 2px #666, .1em .1em .2em rgba(0,0,0,.5);
-                font-weight: inherit;
-            }
+{% block body %}
+    <h2>Review an application to DSSG {{ application.program_year }}</h2>
 
-            .rating:not(:checked) > label:before {
-                content: '★ ';
-            }
+    {% if messages %}
+    {# TODO: move to site.html and make floating / fading? #}
+    <ul class="messages">
+        {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
 
-            .rating > input:checked ~ label {
-                color: #f70;
-                text-shadow:1px 1px #c60, 2px 2px #940, .1em .1em .2em rgba(0,0,0,.5);
-            }
-
-            .rating:not(:checked) > label:hover,
-            .rating:not(:checked) > label:hover ~ label {
-                color: gold;
-                text-shadow:1px 1px goldenrod, 2px 2px #B57340, .1em .1em .2em rgba(0,0,0,.5);
-            }
-
-            .rating > input:checked + label:hover,
-            .rating > input:checked + label:hover ~ label,
-            .rating > input:checked ~ label:hover,
-            .rating > input:checked ~ label:hover ~ label,
-            .rating > label:hover ~ input:checked ~ label {
-                color: #ea0;
-                text-shadow:1px 1px goldenrod, 2px 2px #B57340, .1em .1em .2em rgba(0,0,0,.5);
-            }
-
-            .rating > label:active {
-                position:relative;
-                top:2px;
-                left:2px;
-            }
-
-            /* end ratings */
-        </style>
-    </head>
-    <body>
-        <h2>Review an application to DSSG {{ application.program_year }}</h2>
-
-        {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-            {% endfor %}
-        </ul>
+    <p>
+        {% if review_count == 0 %}
+        You haven't submitted any reviews for this year 😕
+        {% else %}
+            {% include "review/includes/submission-count.html" with count=review_count only %}
         {% endif %}
+    </p>
 
-        <p>
-            {% if review_count == 0 %}
-            You haven't submitted any reviews for this year 😕
-            {% else %}
-            You've submitted {{ review_count }} review{{ review_count|pluralize }} for this year{% if review_count < 3 %}.
-                {% elif review_count < 5 %} 👍
-                {% else %}{{ '!'|repeat:review_count }}
-                {% endif %}
-            {% endif %}
-        </p>
+    {# TODO: by default either above or below (probably below) the application #}
+    {# TODO: ...but with (commonly)-wider screen, use CSS rules to place in left-hand sidebar whose content scrolls with visible window #}
+    <section>
+        <h3>Enter your review</h3>
 
-        {# TODO: by default either above or below (probably below) the application #}
-        {# TODO: ...but with (commonly)-wider screen, use CSS rules to place in left-hand sidebar whose content scrolls with visible window #}
-        <section>
-            <h3>Enter your review</h3>
+        <form id="review" method="post">
+            {{ rating_formset.non_form_errors }}
+            {{ review_form.non_field_errors }}
 
-            <form id="review" method="post">
-                {{ rating_formset.non_form_errors }}
-                {{ review_form.non_field_errors }}
+            {% csrf_token %}
 
-                {% csrf_token %}
+            {{ rating_formset.management_form }}
+            <ul class="basic">
+                {% for rating_form in rating_formset %}
+                <li>
+                    {{ rating_form.non_field_errors }}
+                    <fieldset class="rating">
+                        <legend>{{ rating_form.score.label }}</legend>
 
-                {{ rating_formset.management_form }}
-                <ul class="basic">
-                    {% for rating_form in rating_formset %}
-                    <li>
-                        {{ rating_form.non_field_errors }}
-                        <fieldset class="rating">
-                            <legend>{{ rating_form.score.label }}</legend>
+                        {{ rating_form.score.errors }}
 
-                            {{ rating_form.score.errors }}
+                        {# ensure that radio inputs are listed in *reverse*-value order for proper functioning of CSS stars #}
+                        {% for score_option in rating_form.score|dictsortreversed:"choice_label" %}
+                            {{ score_option.tag }}
+                            <label for="{{ score_option.id_for_label }}">
+                                {{ score_option.choice_label }}
+                            </label>
+                        {% endfor %}
 
-                            {# ensure that radio inputs are listed in *reverse*-value order for proper functioning of CSS stars #}
-                            {% for score_option in rating_form.score|dictsortreversed:"choice_label" %}
-                                {{ score_option.tag }}
-                                <label for="{{ score_option.id_for_label }}">
-                                    {{ score_option.choice_label }}
-                                </label>
-                            {% endfor %}
-
-                            {{ rating_form.label }}
-                        </fieldset>
-                    </li>
-                    {% endfor %}
-
-                    {% for review_field in review_form.visible_fields %}
-                    <li>
-                        {{ review_field.errors }}
-                        {% if review_field.help_text %}
-                        <label for="{{ review_field.id_for_label }}">{{ review_field.help_text }}</label>
-                        {% else %}{{ review_field.label_tag }}
-                        {% endif %}
-                        {% if review_field.field.widget.input_type != 'checkbox' %}<br>{% endif %}
-                        {{ review_field }}
-                    </li>
-                    {% endfor %}
-                </ul>
-
-                {% for review_field in review_form.hidden_fields %}
-                    {{ review_field }}
+                        {{ rating_form.label }}
+                    </fieldset>
+                </li>
                 {% endfor %}
 
-                <input type="submit" value="Submit">
-            </form>
-        </section>
+                {% for review_field in review_form.visible_fields %}
+                <li>
+                    {{ review_field.errors }}
+                    {% if review_field.help_text %}
+                    <label for="{{ review_field.id_for_label }}">{{ review_field.help_text }}</label>
+                    {% else %}{{ review_field.label_tag }}
+                    {% endif %}
+                    {% if review_field.field.widget.input_type != 'checkbox' %}<br>{% endif %}
+                    {{ review_field }}
+                </li>
+                {% endfor %}
+            </ul>
 
-        <section>
-            <h3>Pages</h3>
-            {% for page in application.applicationpage_set.all %}
-            {% include "review/includes/surveyentry_detail.html" with surveyentry=page only %}
-            {% empty %}
-            (none)
+            {% for review_field in review_form.hidden_fields %}
+                {{ review_field }}
             {% endfor %}
 
-            <h3>References</h3>
-            {% for reference in application.reference_set.all %}
-            {% include "review/includes/surveyentry_detail.html" with surveyentry=reference only %}
-            {% empty %}
-            (none)
-            {% endfor %}
-        </section>
-    </body>
-</html>
+            <input type="submit" value="Submit">
+        </form>
+    </section>
+
+    <section>
+        <h3>Pages</h3>
+        {% for page in application.applicationpage_set.all %}
+        {% include "review/includes/surveyentry_detail.html" with surveyentry=page only %}
+        {% empty %}
+        (none)
+        {% endfor %}
+
+        <h3>References</h3>
+        {% for reference in application.reference_set.all %}
+        {% include "review/includes/surveyentry_detail.html" with surveyentry=reference only %}
+        {% empty %}
+        (none)
+        {% endfor %}
+    </section>
+{% endblock %}

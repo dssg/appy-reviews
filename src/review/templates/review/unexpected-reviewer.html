@@ -1,9 +1,8 @@
-<html>
-    <body>
-        <h2>Review?</h2>
-        
-        <p>Hi, {{ user.first_name|default:user.email }}.</p>
-        <p>Are you a reviewer of applications to DSSG for {{ program_year }}?</p>
-        <p>There are no applications for you to review.</p>
-    </body>
-</html>
+{% extends "review/site.html" %}
+{% block body %}
+    <h2>Review?</h2>
+    
+    <p>Hi, {{ user.first_name|default:user.email }}.</p>
+    <p>Are you a reviewer of applications to DSSG for {{ program_year }}?</p>
+    <p>There are no applications for you to review.</p>
+{% endblock %}

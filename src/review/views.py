@@ -167,6 +167,9 @@ def review(request):
         except IndexError:
             return TemplateResponse(request, 'review/noapps.html', {
                 'program_year': settings.REVIEW_PROGRAM_YEAR,
+                'review_count': request.user.reviews.filter(
+                    application__program_year=settings.REVIEW_PROGRAM_YEAR
+                ).count(),
             })
 
         review_form = ReviewForm(initial={'application': application})

@@ -337,7 +337,9 @@ class Reference(SurveyEntry):
 class Review(models.Model):
 
     review_id = models.AutoField(primary_key=True)
-    reviewer = models.ForeignKey('review.Reviewer', on_delete=models.CASCADE)
+    reviewer = models.ForeignKey('review.Reviewer',
+                                 on_delete=models.CASCADE,
+                                 related_name='reviews')
     application = models.ForeignKey('review.Application', on_delete=models.CASCADE)
     submitted = models.DateTimeField(auto_now_add=True)
     comments = models.TextField(
@@ -377,7 +379,9 @@ class Rating(models.Model):
             return self.value
 
     rating_id = models.AutoField(primary_key=True)
-    review = models.ForeignKey('review.Review', on_delete=models.CASCADE)
+    review = models.ForeignKey('review.Review',
+                               on_delete=models.CASCADE,
+                               related_name='ratings')
     label = EnumCharField(Label)
     score = models.IntegerField()
 

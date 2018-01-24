@@ -7,3 +7,4 @@ gunicorn==19.7.1
 git+https://github.com/wufoo/pyfoo.git@f84df2b6ba84ac2aa2a21f694938944be204464a
 plumbum==1.6.4
 psycopg2==2.7.3.2
+terminaltables==3.1.0

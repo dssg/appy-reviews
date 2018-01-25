@@ -65,15 +65,9 @@ else:
 
 INSTALLED_APPS = [
     #
-    # Django "contrib"
+    # our apps
     #
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'django.contrib.sites',
+    'review',
 
     #
     # 3rd-party
@@ -100,9 +94,15 @@ INSTALLED_APPS = [
     # 'allauth.socialaccount.providers.twitter',
 
     #
-    # our apps
+    # Django "contrib"
     #
-    'review',
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'django.contrib.sites',
 ]
 
 MIDDLEWARE = [

@@ -1,24 +1,60 @@
+<!DOCTYPE html>
 <html>
     <head>
-        <title>{% block title %}DSSG application reviews{% endblock %}</title>
+        <title>{% block page_title %}{% endblock %}{% block title %}DSSG application review{% endblock %}</title>
         <style>
             /* section body */
 
             body {
                 font-family: "Helvetica Neue",Helvetica,Arial,Verdana,Tahoma;
+                padding: 0.1em 0.5em;
             }
 
             /* end body */
 
             /* section general */
 
+            a.logo {
+                text-decoration: none;
+                color: black;
+            }
+
+            header:after, .row:after {
+                content: "";
+                display: table;
+                clear: both;
+            }
+
+            .pull-left {
+                float: left;
+            }
+            .pull-right {
+                float: right;
+            }
+
             .serif {
                 font-family: Bookman,"Times New Roman",Times;
             }
 
-            ul.basic {
+            ul.basic, ul.horizontal {
                 list-style: none;
                 padding: 0;
+            }
+
+            ul.horizontal {
+                margin: 0;
+            }
+            ul.horizontal li {
+                display: inline;
+            }
+            ul.horizontal.piped li:before {
+                content: "|";
+                display: inline-block;
+                width: 0.5em;
+            }
+            ul.horizontal.piped li:first-child:before {
+                content: "";
+                width: 0em;
             }
 
             dl.formatted {
@@ -41,6 +77,21 @@
                 flex: 0 0 50%;
             }
 
+            .fadeout-1-10 {
+                animation: fadeout 1s linear 10s 1 normal forwards;
+            }
+
+            @keyframes fadeout {
+                from {
+                    opacity: 1;
+                    visibility: visible;
+                }
+                to {
+                    opacity: 0;
+                    visibility: hidden;
+                }
+            }
+
             /* end general */
 
             /* section django */
@@ -50,18 +101,30 @@
                 color: red;
             }
 
+            .footnote {
+                position: fixed;
+                bottom: 0;
+                width: 100%;
+                text-align: center;
+            }
+
             ul.messages {
                 list-style: none;
                 margin-left: 0;
-                padding-left: 1.2em;
                 text-indent: -1.2em;
+                padding: 1em 1em 1em 1.6em;
+                display: inline-block;
+                font-weight: bold;
+                border: dotted #c7c7c7 1px;
+                background: #f7f7f7;
+                color: #424242;
+                box-shadow: 1px 1px 1px 0px #797979;
+                border-radius: 2px;
             }
 
             .messages li.success:before {
                 content: "👌";
-                display: block;
-                float: left;
-                width: 1.5em;
+                padding: 0.3em;
             }
 
             /* end django */
@@ -70,6 +133,31 @@
         {% block head %}{% endblock %}
     </head>
     <body>
+        <header>
+            <div class="pull-left">
+                <a href="/" class="logo"><strong>DSSG application review</strong></a>
+            </div>
+            <ul class="horizontal piped pull-right">
+                {% if user.is_authenticated %}
+                {# <li><a href="{% url 'account_email' %}">Change E-mail</a></li> #}
+                <li><a href="{% url 'account_logout' %}">Sign Out</a></li>
+                {% else %}
+                <li><a href="{% url 'account_login' %}">Sign In</a></li>
+                <li><a href="{% url 'account_signup' %}">Sign Up</a></li>
+                {% endif %}
+            </ul>
+        </header>
+
+        {% if messages %}
+        <div class="footnote fadeout-1-10">
+        <ul class="messages">
+            {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        </div>
+        {% endif %}
+
         {% block body %}{% endblock %}
     </body>
 </html>

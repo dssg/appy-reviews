@@ -90,15 +90,6 @@ Review an application to DSSG {{ application.program_year }}
 {% block body %}
     <h2>Review an application to DSSG {{ application.program_year }}</h2>
 
-    {% if messages %}
-    {# TODO: move to site.html and make floating / fading? #}
-    <ul class="messages">
-        {% for message in messages %}
-        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-
     <p>
         {% if review_count == 0 %}
         You haven't submitted any reviews for this year 😕
@@ -112,7 +103,7 @@ Review an application to DSSG {{ application.program_year }}
     <section>
         <h3>Enter your review</h3>
 
-        <form id="review" method="post">
+        <form id="review" method="post" action="{% url 'review' %}">
             {{ rating_formset.non_form_errors }}
             {{ review_form.non_field_errors }}
 

@@ -84,6 +84,19 @@ class Command(BaseCommand):
             help="Apply no database table suffix.",
         )
         parser.add_argument(
+            '--entity-id', '--id',
+            default='EntryId',
+            dest='entity_id_field',
+            help="Database column to set as primary key (default: EntryId)",
+        )
+        parser.add_argument(
+            '--no-entity-id',
+            action='store_false',
+            default=True,
+            dest='apply_pk',
+            help="Set no primary key",
+        )
+        parser.add_argument(
             '--append',
             action='store_true',
             help="Append rows to any existing database tables (rather than overwrite).",
@@ -95,6 +108,7 @@ class Command(BaseCommand):
 
     def handle(self, target='.', filters=(), write_to_db=True,
                apply_suffix=True, suffix=None, append=False,
+               entity_id_field='EntryId', apply_pk=True,
                verbosity=1, **_options):
         self.verbosity = verbosity
 
@@ -138,7 +152,7 @@ class Command(BaseCommand):
                 table_names = [table_name + f'_{table_suffix}'
                                for table_name in table_names]
 
-            for (table_name, data_path, stream) in zip(table_names, data_paths, streams):
+            for (table_name, data_path, stream, table_apply_pk) in zip(table_names, data_paths, streams, (apply_pk, False)):
                 with connection.cursor() as cursor:
                     cursor.execute(f"select to_regclass('{table_name}')")
                     (result,) = cursor.fetchone()
@@ -150,6 +164,8 @@ class Command(BaseCommand):
                     '--insert',
                     '--no-constraints',
                     '--db-schema', settings.DATABASE_SCHEMA,
+                    '--no-inference',  # inference incorrectly truncates and
+                                       # casts document URIs to date
                 ]
 
                 if table_exists:
@@ -178,6 +194,11 @@ class Command(BaseCommand):
                     except subprocess.TimeoutExpired:
                         load_process.kill()
                         raise
+
+                if table_apply_pk and not (table_exists and append):
+                    with connection.cursor() as cursor:
+                        cursor.execute(f'alter table "{table_name}" '
+                                       f'add primary key ("{entity_id_field}")')
 
     def report(self, *contents, minlevel=2):
         if self.verbosity >= minlevel:

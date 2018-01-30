@@ -2,6 +2,7 @@
 <html>
     <head>
         <title>{% block page_title %}{% endblock %}{% block title %}DSSG application review{% endblock %}</title>
+        <link href="https://afeld.github.io/emoji-css/emoji.css" rel="stylesheet">
         <style>
             /* section body */
 
@@ -14,9 +15,37 @@
 
             /* section general */
 
+            .column-rail-left {
+                width: 300px;
+            }
+            @media screen and (min-width: 800px) {
+                .column-container {
+                    padding-left: 300px;
+                    overflow: hidden;
+                }
+                .column-content {
+                    width: 100%;
+                    margin-left: -300px;
+                    float: right;
+                }
+                .column-rail-left {
+                    margin-left: -300px;
+                    float: left;
+                    display: inline;
+                }
+            }
+
             a.logo {
                 text-decoration: none;
                 color: black;
+            }
+
+            header {
+                border-bottom: grey 1px dotted;
+                padding-bottom: 8px;
+            }
+            header a {
+                text-decoration: none;
             }
 
             header:after, .row:after {
@@ -65,16 +94,26 @@
                 overflow: visible;
             }
             dl.formatted dt {
-                flex: 0 0 50%;
+                flex: 0 0 28%;
                 text-overflow: ellipsis;
                 overflow: hidden;
+                padding: 1%;
             }
             dl.formatted dd {
                 margin-left: auto;
                 text-align: left;
                 text-overflow: ellipsis;
                 overflow: hidden;
-                flex: 0 0 50%;
+                flex: 0 0 68%;
+                padding: 1%;
+            }
+
+            dl.striped dt:nth-child(4n+1),
+            dl.striped dd:nth-child(4n+2) {
+                background-color: #eaeaea;
+            }
+            dl.striped dt {
+                font-weight: bold;
             }
 
             .fadeout-1-10 {
@@ -123,8 +162,11 @@
             }
 
             .messages li.success:before {
-                content: "👌";
-                padding: 0.3em;
+                content: " ";
+                padding: 0.2em 1em 0.2em 1.3em;
+                background-image: url(https://twemoji.maxcdn.com/2/svg/1f44c.svg);
+                background-repeat: no-repeat;
+                background-position: center;
             }
 
             /* end django */

@@ -160,7 +160,7 @@ def review(request):
                     rating_form.save_m2m()
 
             messages.success(request, 'Review submitted')
-            return redirect('review')
+            return redirect('review-application')
     else:
         try:
             application = query.apps_to_review(request.user)[0]
@@ -177,6 +177,7 @@ def review(request):
 
     return TemplateResponse(request, 'review/review.html', {
         'application': application,
+        'application_fields': settings.REVIEW_APPLICATION_FIELDS,
         'rating_formset': rating_formset,
         'review_form': review_form,
         'review_count': request.user.reviews.filter(

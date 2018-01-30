@@ -197,6 +197,227 @@ ACCOUNT_USERNAME_REQUIRED = False
 
 REVIEW_PROGRAM_YEAR = 2018
 REVIEW_SURVEY_LENGTH = 2
+REVIEW_APPLICATION_FIELDS = {
+    # <"page" table>: (
+    #       <pretty table name>, (
+    #           <pretty field name>,
+    #           (<look-up (composite) key, (if different from pretty name)>)
+    #            <OR>
+    #           None,
+    #       ),
+    #       ...
+    'survey_application_1_2018': (
+        'Part 1', (
+        ('First Choice', None),
+        ('Second Choice', None),
+        ('Third Choice', None),
+        ('''Any constraints or other information you want to give us '''
+         '''about your location preferences''', None),
+    )),
+    'survey_application_2_2018': (
+        'Part 2', (
+        ('Full Name', ('First', 'Last')),
+        ('Preferred Name', None),
+        ('Email', None),
+        ('Locale', ('City', 'State / Province / Region', 'Country')),
+        ('Citizenship and US Visa Status', None),
+        ('Self description', ('I am a:',)),
+        ('Gender identification', ('I identify my gender as:',)),
+        ('University Name', None),
+        ('Major/department', None),
+        ('Expected Graduation Date (or date when you last graduated)', None),
+        ('Transcripts', ('Upload your unofficial transcripts from your '
+                         'current degree program (or from the most recent '
+                         'degree you have received).',)),
+        ('Computer Programming', None),
+        ('Computer Science (Algorithms)', None),
+        ('Statistics', None),
+        ('Machine Learning', None),
+        ('Social Science (Economics, Sociology, etc.)', None),
+        ('Experience working on real-world problems using data', None),
+        ('Experimental Methods (RCTs, A/B testing, etc.)', None),
+        ('Data Skills (SQL, Data ETL)', None),
+        ('Visualization', None),
+        ('Python', None),
+        ('C/C++/C#/Java', None),
+        ('R', None),
+        ('Matlab', None),
+        ('SAS', None),
+        ('SPSS', None),
+        ('Stata', None),
+        ('Julia', None),
+        ('SQL', None),
+        ('GIS tools', None),
+        ('Other', None),
+        ('Programming Experience', (
+            '''Tell us more about your programming experience. '''
+            '''What projects have you worked on, what was your role, and '''
+            '''what tools and languages did you use?  \n\n'''
+            '''You don't need to be an expert coder to be part of DSSG, but '''
+            '''you need some coding experience. We want to know more about '''
+            '''your skills so we can create the right teams  for each project.''',
+        )),
+        ('Analysis Experience', (
+            '''Tell us more about projects you have done with data analysis. \n'''
+            '''What tools did you use?\n'''
+            '''What algorithms/methods?\n'''
+            '''What format was the data in?\n'''
+            '''Did it come from multiple sources?\n'''
+            '''How did you store it?\n'''
+            '''Where did the output of the analysis go and how was it used '''
+            '''(thesis, report, use of the analysis)? ''',
+        )),
+        ('Regression Models', None),
+        ('Decision Trees', None),
+        ('SVMs', None),
+        ('Random Forests', None),
+        ('Neural Networks / Deep Learning', None),
+        ('Time Series Models', None),
+        ('Unsupervised models', None),
+        ('Semi-Supervised models', None),
+        ('Graphical models', None),
+        ('Modeling/machine-learning experience', (
+            '''Tell us more about your experience with modeling and machine '''
+            '''learning algorithms and methods. \n\n'''
+            '''Which algorithms and methods have you used? \n'''
+            '''Which ones are you comfortable with?\n\n'''
+            '''Tell us about a project you've done using  machine learning \n'''
+            '''- What was the goal of the project?\n'''
+            '''- What did you do?\n'''
+            '''- How were the results used?\n'''
+            '''- Did anyone else have to use your work? ''',
+        )),
+        ('Causal inference', None),
+        ('Matching (e.g., Propensity Score Matching )', None),
+        ('Instrumental Variables', None),
+        ('Regression Discontinuity', None),
+        ('Natural Experiments', None),
+        ('Social science experience', (
+            '''Tell us more about your experience with quantitative social '''
+            '''science methods. What methods have you used? What was the '''
+            '''goal of the work you were doing? How were the results used? ''',
+        )),
+        ('Data in Text Files', None),
+        ('Data in Relational Databases', None),
+        ('Text Data (NLP)', None),
+        ('Network/Graph Data', None),
+        ('Multimedia Data (Video or Audio)', None),
+        ('Data from Sensors', None),
+        ('Data > 1TB', None),
+        ('Geospatial', None),
+        ('Data experience', (
+            '''Tell us more about your experience using data. What type of '''
+            '''data are you most experienced and comfortable with? \n\n'''
+            '''Text files? databases? natural language text data? '''
+            '''graphs/networks? images? multimedia?''',
+        )),
+        ('Data projects', (
+            '''Tell us about data-related projects you’ve worked on recently. \n\n'''
+            '''For example:\n'''
+            '''What was the goal of the project?\n'''
+            '''What methods and tools did you use? \n'''
+            '''What did you do? \n'''
+            '''Were these projects that you worked on independently, or as '''
+            '''part of a team? \n'''
+            '''What was your role if it was done as part of a team?\n'''
+            '''What was the outcome and impact?\n\n'''
+            '''If any materials about the projects are available online, '''
+            '''please include links here (papers, web pages, Github repos, '''
+            '''blog posts, etc.).''',
+        )),
+        ('Github / code sample', (
+            '''Link to your GitHub Account, if you have one (or a code sample '''
+            '''that is online)''',
+        )),
+        ('Education', None),
+        ('Health', None),
+        ('Energy', None),
+        ('Environment', None),
+        ('Transportation', None),
+        ('Poverty', None),
+        ('Housing/Land Use', None),
+        ('Public Safety', None),
+        ('International Development', None),
+        ('Other', None),
+        ('Motivation / public sector experience', (
+            '''What is it about ‘social good’ work that you find compelling? '''
+            '''Tell us about your past experiences working in (or with) the '''
+            '''public sector (this can mean work or projects with governments '''
+            '''and nonprofits, volunteer work, or for-profit work with a '''
+            '''social mission). \n\n'''
+            '''What accomplishment are you most proud of in this area? In '''
+            '''two sentences, tell us what you found a) the most rewarding '''
+            '''and b) the most frustrating about these experiences.''',
+        )),
+        ('Teamwork', (
+            '''DSSG is a team-centric environment. Tell us the three best '''
+            '''qualities that you bring to a team (your experiences can be '''
+            '''from school or from a job). \n\n'''
+            '''Additionally, tell us one element of teamwork that you find '''
+            '''frustrating, and walk us through the process of how to like '''
+            '''to work through disagreements.\n\n'''
+            '''How do you organize your work when working with a team? What '''
+            '''collaboration tools did you use to work with a team? '''
+            '''(Calendars, Email, Slack, GitHub, Trello, etc)''',
+        )),
+        ('Future plans', (
+            '''Tell us about your future plans (post-DSSG and post-summer as '''
+            '''well as longer term) and what you want to get out of this '''
+            '''summer at DSSG''',
+        )),
+        ('How did you hear about this program?', None),
+        ('''Have you applied to UChicago's DSSG in the past? ''', None),
+        ('Additional information', (
+            '''Anything else you'd like to tell us? If you have applied for '''
+            '''DSSG in the past, please tell us what's new since you '''
+            '''last applied''',
+        )),
+        ('Resume/CV', (
+            '''Please attach your resume or CV as an additional Word, PDF, '''
+            '''or text document.''',
+        )),
+        ('University Housing requested', (
+            '''I would like to be considered for a space in University Housing''',
+        )),
+        ('Interested in DSaPP', (
+            '''I am currently available and interested in a post-summer '''
+            '''job opportunity with the Center for Data Science and '''
+            'Public Policy',
+        )),
+        ('May share info', (
+            '''I would like DSSG to share my info with social-good '''
+            '''organizations who are looking for help (Don't worry: we won't '''
+            '''sell your info.)''',
+        )),
+    )),
+    'survey_recommendation_2018': (
+        'Reference {{ count }}', (
+            ('Reference Name', ('First', 'Last')),
+            ('Reference Email', ('Your Email',)),
+            ('Reference Organization/University', ('Your Organization/University',)),
+            ('Applicant Email', ('Applicant Email Address',)),
+            ('Reference has known applicant for', ('How long have you known the applicant?',)),
+            ('In the capacity of', ('In what capacity?',)),
+            ("Applicant's ability in computer programming", ('Computer programming',)),
+            ("Applicant's ability in statistics", ('Statistics',)),
+            ("Applicant's ability in data analysis", ('Data analysis skills',)),
+            ("Applicant's ability in social science methodology", ('Social science methods',)),
+            ("Applicant's communication ability", ('Communication ability',)),
+            ("Applicant's experience working in teams", ('Experience working in teams',)),
+            ("Applicant's interest and passion for social good", ('Interest and passion for social good',)),
+			('''The fellowship is very competitive and we are looking for a '''
+             '''mix of people: smart, quantitative, analytical fellows who '''
+             '''care about using their skills to make a social impact. \n\n'''
+             '''In your opinion, should we accept this applicant?''', None),
+            ('Recommendation letter', (
+                '''Please upload a letter in Word document or PDF format '''
+                '''below or paste the text in the box below''',
+                '''Please attach your recommendation as an additional Word, '''
+                '''PDF or text document.''',
+            )),
+            ('Additional comments', ('''Anything else you'd like to tell us?''',)),
+    )),
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/

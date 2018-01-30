@@ -1,7 +1,27 @@
-<h4>{{ surveyentry.table_name }}</h4>
-<dl class="formatted serif">
+{% load review %}
+
+{% with fieldspec|lookup:surveyentry.table_name as fields %}
+<h4>{% render fields.0|default:surveyentry.table_name %}</h4>
+
+<dl class="formatted serif striped">
+{% if fields %}
+{% for field_name, composition in fields.1 %}
+    <dt>{{ field_name }}</dt>
+    <dd>
+        {% if composition %}
+            {% for key in composition %}
+                {% include "review/includes/surveyentry_detail_value.html" with field_name=key field_value=surveyentry.entry|lookup:key only %}
+            {% endfor %}
+        {% else %}
+            {% include "review/includes/surveyentry_detail_value.html" with field_name=field_name field_value=surveyentry.entry|lookup:field_name only %}
+        {% endif %}
+    </dd>
+{% endfor %}
+{% else %}
     {% for key, value in surveyentry.entry.items %}
     <dt>{{ key }}</dt>
-    <dd>{{ value }}</dd>
+    <dd>{{ value|linebreaksbr }}</dd>
     {% endfor %}
+{% endif %}
 </dl>
+{% endwith %}

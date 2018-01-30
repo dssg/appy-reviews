@@ -1,5 +1,5 @@
 {% load review %}
 You've submitted {{ count }} review{{ count|pluralize }} for this year{% if count < 3 %}.
-    {% elif count < 5 %} 👍
+    {% elif count < 5 %} <i class="em-svg em---1"></i>
     {% else %}{{ '!'|repeat:count }}
     {% endif %}

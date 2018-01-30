@@ -15,14 +15,33 @@ Review an application to DSSG {{ application.program_year }}
         #review label {
             font-weight: bold;
         }
+        #review textarea {
+            max-width: 90%;
+        }
+        #review input[type=submit] {
+            font-size: x-large;
+            font-weight: bold;
+            border-radius: 5px;
+            border-width: 1px;
+            padding: 4px 10px;
+        }
 
         /* end review */
+
+        /* section application */
+
+        #application h3 {
+            border-bottom: grey 1px dotted;
+            padding-bottom: 0.3em;
+        }
+
+        /* end application */
 
         /* section ratings */
 
         .rating {
             display: inline;
-            min-width: 300px;
+            width: 215px;
             border-width: 1px;
         }
 
@@ -92,18 +111,17 @@ Review an application to DSSG {{ application.program_year }}
 
     <p>
         {% if review_count == 0 %}
-        You haven't submitted any reviews for this year 😕
+        You haven't submitted any reviews for this year <i class="em-svg em-confused"></i>
         {% else %}
             {% include "review/includes/submission-count.html" with count=review_count only %}
         {% endif %}
     </p>
 
-    {# TODO: by default either above or below (probably below) the application #}
-    {# TODO: ...but with (commonly)-wider screen, use CSS rules to place in left-hand sidebar whose content scrolls with visible window #}
-    <section>
+    <div class="column-container">
+    <section class="column-rail-left">
         <h3>Enter your review</h3>
 
-        <form id="review" method="post" action="{% url 'review' %}">
+        <form id="review" method="post" action="{% url 'review-application' %}">
             {{ rating_formset.non_form_errors }}
             {{ review_form.non_field_errors }}
 
@@ -149,23 +167,42 @@ Review an application to DSSG {{ application.program_year }}
                 {{ review_field }}
             {% endfor %}
 
-            <input type="submit" value="Submit">
+            <input type="submit" value="Submit Review">
         </form>
     </section>
 
-    <section>
-        <h3>Pages</h3>
+    <section id="application" class="column-content">
+        <h3>Application</h3>
         {% for page in application.applicationpage_set.all %}
-        {% include "review/includes/surveyentry_detail.html" with surveyentry=page only %}
+        {% include "review/includes/surveyentry_detail.html" with surveyentry=page fieldspec=application_fields count=forloop.counter only %}
         {% empty %}
         (none)
         {% endfor %}
 
         <h3>References</h3>
         {% for reference in application.reference_set.all %}
-        {% include "review/includes/surveyentry_detail.html" with surveyentry=reference only %}
+        {% include "review/includes/surveyentry_detail.html" with surveyentry=reference fieldspec=application_fields count=forloop.counter only %}
         {% empty %}
         (none)
         {% endfor %}
     </section>
+    </div>
+
+    <script type="text/javascript">
+        (function (window) {
+            'use strict';
+
+            window.document
+            .querySelector('section.column-content')
+            .addEventListener(
+                'click',
+                function (evt) {
+                    if (evt.target.tagName === 'A') {
+                        evt.preventDefault();
+                        window.open(evt.target.href);
+                    }
+                }
+            );
+        })(window);
+    </script>
 {% endblock %}

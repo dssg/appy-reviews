@@ -1,0 +1,5 @@
+{% if field_value == field_name %}
+    Yes
+{% else %}
+    {{ field_value|default:'--'|urlize|linebreaksbr }}
+{% endif %}

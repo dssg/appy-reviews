@@ -182,6 +182,8 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
+LOGIN_REDIRECT_URL = '/'
+
 # allauth
 
 ACCOUNT_EMAIL_REQUIRED = True
@@ -197,6 +199,11 @@ ACCOUNT_USERNAME_REQUIRED = False
 
 REVIEW_PROGRAM_YEAR = 2018
 REVIEW_SURVEY_LENGTH = 2
+REVIEW_WHITELIST = {
+    'jslondon@uchicago.edu',
+    'jesselondon@gmail.com',
+    'jester@dinosaursuperhero.com',
+}
 REVIEW_APPLICATION_FIELDS = {
     # <"page" table>: (
     #       <pretty table name>, (

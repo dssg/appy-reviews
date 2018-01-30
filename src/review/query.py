@@ -58,7 +58,8 @@ def apps_to_review(reviewer):
         try:
             (result,) = next(iter(cursor))
         except StopIteration:
-            raise UnexpectedReviewer
+            if reviewer.email not in settings.REVIEW_WHITELIST:
+                raise UnexpectedReviewer
         else:
             assert result
 

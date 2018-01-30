@@ -275,6 +275,7 @@ class SurveyEntry(models.Model):
 
     class Meta:
         abstract = True
+        ordering = ('table_name', 'column_name', 'entity_code')
         unique_together = (
             ('table_name', 'column_name', 'entity_code'),
         )

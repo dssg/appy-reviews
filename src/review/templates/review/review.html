@@ -47,6 +47,16 @@ Review an application to DSSG {{ application.program_year }}
             text-align: left;
         }
 
+        @media screen and (min-width: 800px) {
+            .sidebar-scroll {
+                max-height: 100vh;
+                overflow: auto;
+            }
+            .sidebar-scroll::-webkit-scrollbar {
+                display: none;
+            }
+        }
+
         /* end review */
 
         /* section review ratings */
@@ -158,7 +168,7 @@ Review an application to DSSG {{ application.program_year }}
     </dl>
 
     <div class="column-container">
-    <section class="column-rail-left">
+    <section class="column-rail-left sidebar-scroll sticky">
         <h2><a name="review">Review</a></h2>
 
         <form id="review" method="post" action="{% url 'review-application' %}">
@@ -238,6 +248,51 @@ Review an application to DSSG {{ application.program_year }}
                         evt.preventDefault();
                         window.open(evt.target.href);
                     }
+                }
+            );
+        })(window);
+
+        (function (window) {
+            'use strict';
+
+            /* start compatibility */
+            var supportPageOffset = window.pageXOffset !== undefined,
+                isCSS1Compat = ((window.document.compatMode || "") === "CSS1Compat");
+
+            function windowScrollY () {
+                return supportPageOffset ? window.pageYOffset
+                        : isCSS1Compat ? window.document.documentElement.scrollTop
+                        : window.document.body.scrollTop;
+            }
+            /* end compatibility */
+
+            var minWidth = 800,
+                bottomMargin = 5,
+                sidebar = window.document.querySelector('section.sticky'),
+                initialOffsetTop = sidebar.offsetTop;
+
+            window
+            .addEventListener(
+                'scroll',
+                function () {
+                    var windowScroll = windowScrollY(),
+                        windowOffsetBottom = this.innerHeight + windowScroll,
+                        triggerOffsetBottom = initialOffsetTop + sidebar.offsetHeight + bottomMargin;
+
+                    if (
+                        this.innerWidth >= minWidth &&
+                        windowScroll >= initialOffsetTop &&
+                        windowOffsetBottom >= triggerOffsetBottom
+                    ) {
+                        sidebar.style.position = 'fixed';
+                        sidebar.style.bottom = bottomMargin + 'px';
+                    } else {
+                        sidebar.style.position = '';
+                        sidebar.style.bottom = '';
+                    }
+                },
+                {
+                    passive: true
                 }
             );
         })(window);

@@ -7,6 +7,16 @@
 
 {% block page_title %}{% trans "Sign In" %} | {% endblock %}
 
+{% block head %}
+    <style>
+        form.login label {
+            display: inline-block;
+            width: 6em;
+            font-weight: bold;
+        }
+    </style>
+{% endblock %}
+
 {% block body %}
 
 <h2>{% trans "Sign In" %}</h2>

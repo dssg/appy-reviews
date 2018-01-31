@@ -86,6 +86,10 @@
                 width: 0em;
             }
 
+            .medium-width {
+                max-width: 800px;
+            }
+
             dl.formatted {
                 display: flex;
                 flex-flow: row;
@@ -106,6 +110,16 @@
                 overflow: hidden;
                 flex: 0 0 68%;
                 padding: 1%;
+            }
+
+            dl.grad3 dt {
+                flex: 0 0 4%;
+            }
+            dl.grad3 dd {
+                flex: 0 0 74%;
+            }
+            dl.grad3 dd:nth-of-type(2n-1) {
+                flex: 0 0 16%;
             }
 
             dl.striped dt:nth-child(4n+1),

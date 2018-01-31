@@ -8,15 +8,17 @@ Review an application to DSSG {{ application.program_year }}
     <style>
         /* section review */
 
+        #review {
+            padding-right: 1em;
+        }
         #review li {
-            margin: 2px;
-            padding: 5px;
+            padding: 0.5em 0.5em 0 0;
         }
         #review label {
             font-weight: bold;
         }
         #review textarea {
-            max-width: 90%;
+            max-width: 100%;
         }
         #review input[type=submit] {
             font-size: x-large;
@@ -24,9 +26,80 @@ Review an application to DSSG {{ application.program_year }}
             border-radius: 5px;
             border-width: 1px;
             padding: 4px 10px;
+            display: block;
+            margin: auto;
+            width: 100%;
+        }
+        #review fieldset {
+            border: threedface 1px dotted;
+            margin: 0;
+            text-align: center;
+        }
+        #review fieldset legend {
+            font-weight: bold;
+        }
+        #review fieldset ul {
+            list-style: none;
+            margin-left: 0.05em;
+            padding: 0;
+        }
+        #review fieldset li {
+            text-align: left;
         }
 
         /* end review */
+
+        /* section review ratings */
+
+        .rating input[type=radio] {
+            cursor: pointer;
+            outline: none;
+
+            height: 2em;
+            width: 2em;
+            display: inline-block;
+            vertical-align: middle;
+
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+
+            -webkit-filter: brightness(1.8) grayscale(1) opacity(.9);
+            -moz-filter: brightness(1.8) grayscale(1) opacity(.9);
+            filter: brightness(1.1) grayscale(0.1) opacity(.9);
+        }
+        .rating input[type=radio]:hover {
+            -webkit-filter: brightness(1) grayscale(0) opacity(1);
+            -moz-filter: brightness(1) grayscale(0) opacity(1);
+            filter: brightness(1) grayscale(0) opacity(1);
+        }
+        .rating input[type=radio]:checked {
+            -webkit-filter: none;
+            -moz-filter: none;
+            filter: none;
+
+            border: black 1px solid;
+            border-radius: 15px;
+            /* FIXME: put "padding" between border and input/image */
+        }
+        .rating input[type=radio][value="0"] {
+            background: url("https://twemoji.maxcdn.com/2/72x72/1f937.png");
+            background-image: url("https://twemoji.maxcdn.com/2/svg/1f937.svg"),none;
+        }
+        .rating input[type=radio][value="-1"] {
+            background: url("https://twemoji.maxcdn.com/2/72x72/1f44e.png");
+            background-image: url("https://twemoji.maxcdn.com/2/svg/1f44e.svg"),none;
+        }
+        .rating input[type=radio][value="1"] {
+            background: url("https://twemoji.maxcdn.com/2/72x72/1f44d.png");
+            background-image: url("https://twemoji.maxcdn.com/2/svg/1f44d.svg"),none;
+        }
+        .rating input[type=radio][value="2"] {
+            background: url("https://twemoji.maxcdn.com/2/72x72/1f64c.png");
+            background-image: url("https://twemoji.maxcdn.com/2/svg/1f64c.svg"),none;
+        }
+
+        /* end review ratings */
 
         /* section application */
 
@@ -36,78 +109,11 @@ Review an application to DSSG {{ application.program_year }}
         }
 
         /* end application */
-
-        /* section ratings */
-
-        .rating {
-            display: inline;
-            width: 215px;
-            border-width: 1px;
-        }
-
-        .rating legend {
-            font-weight: bold;
-        }
-
-        /* :not(:checked) is a filter, so that browsers that don’t support :checked don’t 
-        follow these rules. Every browser that supports :checked also supports :not(), so
-        it doesn’t make the test unnecessarily selective */
-        .rating:not(:checked) > input {
-            position:absolute;
-            top:-9999px;
-            clip:rect(0,0,0,0);
-        }
-
-        .rating:not(:checked) > label {
-            float:right;
-            width:1em;
-            padding:0 .1em;
-            overflow:hidden;
-            white-space:nowrap;
-            cursor:pointer;
-            font-size:200%;
-            line-height:1.2;
-            color:#ddd;
-            text-shadow:1px 1px #bbb, 2px 2px #666, .1em .1em .2em rgba(0,0,0,.5);
-            font-weight: inherit;
-        }
-
-        .rating:not(:checked) > label:before {
-            content: '★ ';
-        }
-
-        .rating > input:checked ~ label {
-            color: #f70;
-            text-shadow:1px 1px #c60, 2px 2px #940, .1em .1em .2em rgba(0,0,0,.5);
-        }
-
-        .rating:not(:checked) > label:hover,
-        .rating:not(:checked) > label:hover ~ label {
-            color: gold;
-            text-shadow:1px 1px goldenrod, 2px 2px #B57340, .1em .1em .2em rgba(0,0,0,.5);
-        }
-
-        .rating > input:checked + label:hover,
-        .rating > input:checked + label:hover ~ label,
-        .rating > input:checked ~ label:hover,
-        .rating > input:checked ~ label:hover ~ label,
-        .rating > label:hover ~ input:checked ~ label {
-            color: #ea0;
-            text-shadow:1px 1px goldenrod, 2px 2px #B57340, .1em .1em .2em rgba(0,0,0,.5);
-        }
-
-        .rating > label:active {
-            position:relative;
-            top:2px;
-            left:2px;
-        }
-
-        /* end ratings */
     </style>
 {% endblock %}
 
 {% block body %}
-    <h2>Review an application to DSSG {{ application.program_year }}</h2>
+    <h1>Review an application to DSSG {{ application.program_year }}</h1>
 
     <p>
         {% if review_count == 0 %}
@@ -117,41 +123,71 @@ Review an application to DSSG {{ application.program_year }}
         {% endif %}
     </p>
 
+    {# TODO: "to the top" link #}
+
+    <h2>How to review</h2>
+    <p>
+        Assess the <a href="#application">Application</a> below, which consists
+        of two parts and as many as two <a href="#references">References</a>.
+    </p>
+    <p>
+        Based on your assessment, complete the <a href="#review">Review form</a>.
+        All parts of the review, except open commentary fields, are required.
+    </p>
+
+    <h4>Aptitude ratings</h4>
+    <dl class="formatted grad3 medium-width">
+        <dt><i class="em-svg em-shrug"></i></dt>
+        <dd><strong>Indeterminate</strong></dd>
+        <dd>
+            Select this option only if you are unable to determine from the
+            application the applicant's aptitude with the given subject.
+        </dd>
+
+        <dt><i class="em-svg em--1"></i></dt>
+        <dd><strong>Inadequate</strong></dd>
+        <dd>Indicates that the applicant is below the acceptability threshold for the given subject.</dd>
+
+        <dt><i class="em-svg em---1"></i></dt>
+        <dd><strong>Adequate</strong></dd>
+        <dd>Indicates that the applicant meets the threshold for the given subject.</dd>
+
+        <dt><i class="em-svg em-raised_hands"></i></dt>
+        <dd><strong>Exceptional</strong></dd>
+        <dd>Indicates that the applicant significantly exceeds the threshold of acceptability for the given subject.</dd>
+    </dl>
+
     <div class="column-container">
     <section class="column-rail-left">
-        <h3>Enter your review</h3>
+        <h2><a name="review">Review</a></h2>
 
         <form id="review" method="post" action="{% url 'review-application' %}">
-            {{ rating_formset.non_form_errors }}
             {{ review_form.non_field_errors }}
 
             {% csrf_token %}
 
-            {{ rating_formset.management_form }}
             <ul class="basic">
-                {% for rating_form in rating_formset %}
-                <li>
-                    {{ rating_form.non_field_errors }}
-                    <fieldset class="rating">
-                        <legend>{{ rating_form.score.label }}</legend>
-
-                        {{ rating_form.score.errors }}
-
-                        {# ensure that radio inputs are listed in *reverse*-value order for proper functioning of CSS stars #}
-                        {% for score_option in rating_form.score|dictsortreversed:"choice_label" %}
-                            {{ score_option.tag }}
-                            <label for="{{ score_option.id_for_label }}">
-                                {{ score_option.choice_label }}
-                            </label>
-                        {% endfor %}
-
-                        {{ rating_form.label }}
-                    </fieldset>
-                </li>
-                {% endfor %}
-
                 {% for review_field in review_form.visible_fields %}
                 <li>
+                    {% if review_field.field.widget.input_type == 'radio' %}
+                    {% with is_rating=review_field.field.widget.is_rating %}
+                    <fieldset{% if is_rating %} class="rating"{% endif %}>
+                        <legend>{{ review_field.label }}</legend>
+
+                        {{ review_field.errors }}
+
+                        {% if is_rating %}
+                        {% for rating_option in review_field %}
+                        <label title="{{ rating_option.choice_label }}" for="{{ rating_option.id_for_label }}">
+                            {{ rating_option.tag }}
+                        </label>
+                        {% endfor %}
+                        {% else %}
+                        {{ review_field }}
+                        {% endif %}
+                    </fieldset>
+                    {% endwith %}
+                    {% else %}
                     {{ review_field.errors }}
                     {% if review_field.help_text %}
                     <label for="{{ review_field.id_for_label }}">{{ review_field.help_text }}</label>
@@ -159,6 +195,7 @@ Review an application to DSSG {{ application.program_year }}
                     {% endif %}
                     {% if review_field.field.widget.input_type != 'checkbox' %}<br>{% endif %}
                     {{ review_field }}
+                    {% endif %}
                 </li>
                 {% endfor %}
             </ul>
@@ -172,14 +209,14 @@ Review an application to DSSG {{ application.program_year }}
     </section>
 
     <section id="application" class="column-content">
-        <h3>Application</h3>
+        <h2><a name="application">Application</a></h2>
         {% for page in application.applicationpage_set.all %}
         {% include "review/includes/surveyentry_detail.html" with surveyentry=page fieldspec=application_fields count=forloop.counter only %}
         {% empty %}
         (none)
         {% endfor %}
 
-        <h3>References</h3>
+        <h2><a name="references">References</a></h2>
         {% for reference in application.reference_set.all %}
         {% include "review/includes/surveyentry_detail.html" with surveyentry=reference fieldspec=application_fields count=forloop.counter only %}
         {% empty %}
@@ -197,7 +234,7 @@ Review an application to DSSG {{ application.program_year }}
             .addEventListener(
                 'click',
                 function (evt) {
-                    if (evt.target.tagName === 'A') {
+                    if (evt.target.tagName === 'A' && evt.target.href) {
                         evt.preventDefault();
                         window.open(evt.target.href);
                     }

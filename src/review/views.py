@@ -12,92 +12,49 @@ from django.views.decorators.http import require_http_methods
 from review import models, query
 
 
+RATING_FIELDS = tuple(models.Review.rating_fields())
+
+
+class RatingWidget(forms.RadioSelect):
+
+    rating_choices = (
+        (0, 'Indeterminate'),
+        (-1, 'Inadequate'),
+        (1, 'Adequate'),
+        (2, 'Exceptional'),
+    )
+    is_rating = True
+
+    def __init__(self, attrs=None, choices=rating_choices):
+        super().__init__(attrs, choices)
+
+
 class ReviewForm(forms.ModelForm):
+
+    # ensure empty option isn't provided
+    # (ModelForm insists on inserting it)
+    overall_recommendation = forms.ChoiceField(
+        widget=forms.RadioSelect,
+        choices=list(models.Review.OverallRecommendation.__members__.items()),
+    )
 
     class Meta:
         model = models.Review
         fields = (
             'application',
-            'would_interview',
-            'interview_suggestions',
+        ) + RATING_FIELDS + (
+            'overall_recommendation',
             'comments',
+            'interview_suggestions',
+            'would_interview',
         )
-        widgets = {
-            'application': forms.HiddenInput(),
-        }
-
-
-class RatingForm(forms.ModelForm):
-
-    # rate skill 1 - 5
-    score = forms.ChoiceField(
-        widget=forms.RadioSelect,
-        choices=[(str(value),) * 2 for value in range(1, 6)],
-    )
-
-    class Meta:
-        model = models.Rating
-        fields = (
-            'label',
-            'score',
+        widgets = dict(
+            (
+                (rating_field, RatingWidget)
+                for rating_field in RATING_FIELDS
+            ),
+            application=forms.HiddenInput,
         )
-
-
-class StaticRatingForm(RatingForm):
-
-    def __init__(self, *args, label_text=None, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if label_text is not None:
-            self.fields['score'].label = label_text
-
-    class Meta(RatingForm.Meta):
-        widgets = {
-            'label': forms.HiddenInput(),
-        }
-
-
-class StaticRatingFormSet(forms.BaseFormSet):
-
-    def __init__(self, *args, label_texts=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.label_texts = label_texts
-
-    def get_form_kwargs(self, index):
-        kwargs = super().get_form_kwargs(index)
-        kwargs['label_text'] = self.label_texts and self.label_texts[index]
-        return kwargs
-
-
-def make_rating_formset(*labels,
-                        base_form=StaticRatingForm,
-                        base_formset=StaticRatingFormSet,
-                        **kwargs):
-    label_count = len(labels)
-    label_field = base_form.base_fields['label']
-    label_choices = dict(label_field.choices)
-
-    if label_count == 0:
-        return make_rating_formset(
-            *(label for label in label_choices if label),
-            base_form=base_form,
-            base_formset=base_formset,
-            **kwargs
-        )
-
-    RatingFormSet = forms.formset_factory(
-        base_form,
-        base_formset,
-        min_num=label_count,
-        max_num=label_count,
-        validate_min=True,
-        validate_max=True,
-    )
-    return RatingFormSet(
-        initial=[{'label': label} for label in labels],
-        label_texts=[label_choices[label] for label in labels],
-        **kwargs
-    )
 
 
 def unexpected_review(handler):
@@ -132,32 +89,12 @@ def review(request):
             return http.HttpResponseForbidden("Forbidden")
 
         review_form = ReviewForm(data=request.POST)
-        rating_formset = make_rating_formset(data=request.POST)
-
-        # rather than use a breaking operator such as "and" or "or",
-        # ensure both are checked...
-        try:
-            validations = (
-                review_form.is_valid(),
-                rating_formset.is_valid(),
-            )
-        except forms.ValidationError:
-            return http.HttpResponseBadRequest("Bad request")
-
-        # ...even while invalidity in either invalidate this branch:
-        if all(validations):
+        if review_form.is_valid():
             with transaction.atomic():
                 review = review_form.save(commit=False)
                 review.reviewer = request.user
                 review.save()
                 review_form.save_m2m()
-
-                # ModelFormSet is a bear -- avoiding it for now anyway
-                for rating_form in rating_formset.forms:
-                    rating = rating_form.save(commit=False)
-                    rating.review = review
-                    rating.save()
-                    rating_form.save_m2m()
 
             messages.success(request, 'Review submitted')
             return redirect('review-application')
@@ -173,12 +110,10 @@ def review(request):
             })
 
         review_form = ReviewForm(initial={'application': application})
-        rating_formset = make_rating_formset()
 
     return TemplateResponse(request, 'review/review.html', {
         'application': application,
         'application_fields': settings.REVIEW_APPLICATION_FIELDS,
-        'rating_formset': rating_formset,
         'review_form': review_form,
         'review_count': request.user.reviews.filter(
             application__program_year=settings.REVIEW_PROGRAM_YEAR

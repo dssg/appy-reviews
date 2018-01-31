@@ -335,7 +335,35 @@ class Reference(SurveyEntry):
 # Review
 #
 
-class Review(models.Model):
+class AbstractRating(models.Model):
+
+    programming_rating = models.IntegerField("Programming Ability")
+    machine_learning_rating = models.IntegerField("Stats/Machine Learning Ability")
+    data_handling_rating = models.IntegerField("Data Handling/Manipulation Skills")
+    interest_in_good_rating = models.IntegerField("Interest in Social Good")
+    communication_rating = models.IntegerField("Communication Ability")
+    teamwork_rating = models.IntegerField("Would this person work well in a team?")
+
+    class Meta:
+        abstract = True
+
+    @staticmethod
+    def rating_fields():
+        # Note: not appropriate to refer to `cls`, as we only want
+        # AbstractRating's fields
+        return [field.name for field in AbstractRating._meta.fields]
+
+
+class Review(AbstractRating):
+
+    class OverallRecommendation(str, enum.Enum):
+
+        accept = "Accept"
+        reject = "Reject"
+        only_if = "Only if you need a certain type of fellow (explain below)"
+
+        def __str__(self):
+            return self.value
 
     review_id = models.AutoField(primary_key=True)
     reviewer = models.ForeignKey('review.Reviewer',
@@ -343,6 +371,11 @@ class Review(models.Model):
                                  related_name='reviews')
     application = models.ForeignKey('review.Application', on_delete=models.CASCADE)
     submitted = models.DateTimeField(auto_now_add=True)
+
+    overall_recommendation = EnumCharField(
+        OverallRecommendation,
+        help_text="Overall recommendation",
+    )
     comments = models.TextField(
         blank=True,
         help_text="Any comments on your recommendation?",
@@ -361,33 +394,4 @@ class Review(models.Model):
         db_table = 'review'
         unique_together = (
             ('application', 'reviewer'),
-        )
-
-
-class Rating(models.Model):
-
-    class Label(str, enum.Enum):
-
-        programming = "Programming Ability"
-        machine_learning = "Stats/Machine Learning Ability"
-        data_handling = "Data Handling/Manipulation Skills"
-        interest_in_good = "Interest in Social Good"
-        communication = "Communication Ability"
-        teamwork = "Would this person work well in a team?"
-        overall = "Overall Recommendation"
-
-        def __str__(self):
-            return self.value
-
-    rating_id = models.AutoField(primary_key=True)
-    review = models.ForeignKey('review.Review',
-                               on_delete=models.CASCADE,
-                               related_name='ratings')
-    label = EnumCharField(Label)
-    score = models.IntegerField()
-
-    class Meta:
-        db_table = 'review_rating'
-        unique_together = (
-            ('review', 'label'),
         )

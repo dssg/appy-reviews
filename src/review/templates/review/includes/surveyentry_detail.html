@@ -1,7 +1,7 @@
 {% load review %}
 
 {% with fieldspec|lookup:surveyentry.table_name as fields %}
-<h4>{% render fields.0|default:surveyentry.table_name %}</h4>
+<h3>{% render fields.0|default:surveyentry.table_name %}</h3>
 
 <dl class="formatted serif striped">
 {% if fields %}

@@ -10,7 +10,11 @@
     <dd>
         {% if composition %}
             {% for key in composition %}
-                {% include "review/includes/surveyentry_detail_value.html" with field_name=key field_value=surveyentry.entry|lookup:key only %}
+                {% with key|makelist as complex_key %}
+                {% with complex_key.0 as true_name %}
+                {% include "review/includes/surveyentry_detail_value.html" with field_name=true_name field_value=surveyentry.entry|multilookup:key only %}
+                {% endwith %}
+                {% endwith %}
             {% endfor %}
         {% else %}
             {% include "review/includes/surveyentry_detail_value.html" with field_name=field_name field_value=surveyentry.entry|lookup:field_name only %}

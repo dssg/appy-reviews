@@ -7,7 +7,7 @@ from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.core.mail import send_mail
 from django.db import connection, models
 from django.db.models import fields
-from django.utils import timezone
+from django.utils import datastructures, timezone
 
 from descriptors import cachedproperty
 
@@ -309,10 +309,11 @@ class SurveyEntry(models.Model):
             )
             fields = dict(cursor)
 
-        return {
-            fields.get(column, column): value
-            for (column, value) in zip(columns, row)
-        }
+        entry = datastructures.MultiValueDict()
+        for (column, value) in zip(columns, row):
+            key = fields.get(column, column)
+            entry.appendlist(key, value)
+        return entry
 
     def __str__(self):
         return str(self.entry)

@@ -236,7 +236,7 @@ REVIEW_APPLICATION_FIELDS = {
     )),
     'survey_application_2_2018': (
         'Part 2', (
-        ('Full Name', ('First', 'Last')),
+        ('Full Name', (('First', 0), ('Last', 0))),
         ('Preferred Name', None),
         ('Email', None),
         ('Locale', ('City', 'State / Province / Region', 'Country')),
@@ -245,6 +245,7 @@ REVIEW_APPLICATION_FIELDS = {
         ('Gender identification', ('I identify my gender as:',)),
         ('University Name', None),
         ('Major/department', None),
+        ('Advisor Name', (('First', 1), ('Last', 1))),
         ('Expected Graduation Date (or date when you last graduated)', None),
         ('Transcripts', ('Upload your unofficial transcripts from your '
                          'current degree program (or from the most recent '

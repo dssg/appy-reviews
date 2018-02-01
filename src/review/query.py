@@ -69,8 +69,9 @@ def apps_to_review(reviewer):
         'applicationpage_set',
         'reference_set',
     ).annotate(
-        page_count=Count('applicationpage'),
-        review_count=Count('review'),
+        page_count=Count('applicationpage', distinct=True),
+        reference_count=Count('reference', distinct=True),
+        review_count=Count('review', distinct=True),
     ).filter(
         decision='',
         program_year=settings.REVIEW_PROGRAM_YEAR,
@@ -79,4 +80,5 @@ def apps_to_review(reviewer):
         review__reviewer=reviewer,
     ).order_by(
         'review_count',
+        '-reference_count',
     )

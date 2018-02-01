@@ -295,6 +295,9 @@ class SurveyEntry(models.Model):
             columns = [col[0] for col in cursor.description]
             row = cursor.fetchone()
 
+            if row is None:
+                raise self.DoesNotExist
+
             if cursor.fetchone() is not None:
                 raise self.MultipleObjectsReturned
 

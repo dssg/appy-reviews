@@ -1,5 +1,10 @@
 import functools
+import urllib
 
+import allauth.account.views
+import allauth.account.utils
+from allauth.compat import is_anonymous
+from allauth.utils import get_request_param
 from django import forms, http
 from django.conf import settings
 from django.contrib import messages
@@ -7,6 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from review import models, query
@@ -121,4 +127,67 @@ def review(request):
     })
 
 
-# TODO: SES for email verification?
+class InvitationalConfirmEmailView(allauth.account.views.ConfirmEmailView):
+
+    def get_invitation_redirect_url(self):
+        return (
+            reverse('account_set_password') +
+            '?' + urllib.parse.urlencode([
+                (InvitationalPasswordSetView.redirect_field_name, self.get_redirect_url()),
+            ])
+        )
+
+    def login_on_confirm(self, confirmation):
+        """Override default to:
+
+            * *disable* check, via session, that user *just* requested
+            this email confirmation (*we* intend to send these
+            confirmation emails)
+
+            * redirect user, post login, to set their password, iff
+            their password is "unusable" (unset) and they don't have
+            access through a socialaccount
+
+        """
+        user = confirmation.email_address.user
+        if is_anonymous(self.request.user):
+            if user.has_usable_password() or user.socialaccount_set.exists():
+                # passed as callable, as this method
+                # depends on the authenticated state
+                redirect_url = self.get_redirect_url
+            else:
+                redirect_url = self.get_invitation_redirect_url
+
+            return allauth.account.utils.perform_login(
+                self.request,
+                user,
+                allauth.account.app_settings.EmailVerificationMethod.NONE,
+                redirect_url=redirect_url,
+            )
+
+        return None
+
+invite_confirm_email = InvitationalConfirmEmailView.as_view()
+
+
+class InvitationalPasswordSetView(allauth.account.views.PasswordSetView):
+
+    redirect_field_name = 'next'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        redirect_field_value = get_request_param(self.request,
+                                                 self.redirect_field_name)
+        ctx.update(
+            redirect_field_name=self.redirect_field_name,
+            redirect_field_value=redirect_field_value,
+        )
+        return ctx
+
+    def get_success_url(self):
+        return allauth.account.utils.get_next_redirect_url(
+            self.request,
+            self.redirect_field_name,
+        ) or super().get_success_url()
+
+invite_password_set = login_required(InvitationalPasswordSetView.as_view())

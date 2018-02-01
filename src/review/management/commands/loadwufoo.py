@@ -190,7 +190,7 @@ class Command(BaseCommand):
                     with load_process.stdin as pipe:
                         stream(pipe)
                     try:
-                        load_process.wait(60)
+                        load_process.wait(180)
                     except subprocess.TimeoutExpired:
                         load_process.kill()
                         raise

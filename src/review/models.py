@@ -361,7 +361,7 @@ class Review(AbstractRating):
 
     class OverallRecommendation(str, enum.Enum):
 
-        accept = "Accept"
+        interview = "Interview"
         reject = "Reject"
         only_if = "Only if you need a certain type of fellow (explain below)"
 

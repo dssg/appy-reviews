@@ -365,12 +365,12 @@ class Reference(SurveyEntry):
 
 class AbstractRating(models.Model):
 
-    programming_rating = models.IntegerField("Programming Ability")
-    machine_learning_rating = models.IntegerField("Stats/Machine Learning Ability")
-    data_handling_rating = models.IntegerField("Data Handling/Manipulation Skills")
+    programming_rating = models.IntegerField("Programming")
+    machine_learning_rating = models.IntegerField("Stats & Machine Learning")
+    data_handling_rating = models.IntegerField("Data Handling & Manipulation")
     interest_in_good_rating = models.IntegerField("Interest in Social Good")
     communication_rating = models.IntegerField("Communication Ability")
-    teamwork_rating = models.IntegerField("Would this person work well in a team?")
+    teamwork_rating = models.IntegerField("Teamwork and Collaboration")
 
     class Meta:
         abstract = True
@@ -388,7 +388,7 @@ class Review(AbstractRating):
 
         interview = "Interview"
         reject = "Reject"
-        only_if = "Only if you need a certain type of fellow (explain below)"
+        only_if = "Interview *only* if you need a certain type of fellow (explain below)"
 
     review_id = models.AutoField(primary_key=True)
     reviewer = models.ForeignKey('review.Reviewer',
@@ -403,7 +403,7 @@ class Review(AbstractRating):
     )
     comments = models.TextField(
         blank=True,
-        help_text="Any comments on your recommendation?",
+        help_text="Any comments?",
     )
     interview_suggestions = models.TextField(
         blank=True,
@@ -412,7 +412,7 @@ class Review(AbstractRating):
                   "judge from the application and references?",
     )
     would_interview = models.BooleanField(
-        help_text="Would you like to interview this applicant?",
+        help_text="If this applicant moves to the interview round, would you like to interview them?",
     )
 
     class Meta:

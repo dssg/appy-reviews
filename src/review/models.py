@@ -12,6 +12,12 @@ from django.utils import datastructures, timezone
 from descriptors import cachedproperty
 
 
+class StrEnum(str, enum.Enum):
+
+    def __str__(self):
+        return self.value
+
+
 class EnumCharField(fields.CharField):
 
     def __init__(self, enum, **kws):
@@ -246,14 +252,32 @@ class Applicant(models.Model):
 
 class Application(models.Model):
 
+    class FinalDecision(StrEnum):
+
+        accept = 'Accept'
+        reject = 'Reject'
+        waitlist = 'Waitlist'
+
     application_id = models.AutoField(primary_key=True)
     applicant = models.ForeignKey('review.Applicant',
                                   on_delete=models.CASCADE,
                                   related_name='applications')
-    decision = models.CharField(max_length=6, choices=(
-        ('accept', 'Accept'),
-        ('reject', 'Reject'),
-    ))
+
+    review_decision = models.BooleanField(
+        "Review?",
+        default=True,
+        help_text="Whether we intend to review this application",
+    )
+    interview1_decision = models.NullBooleanField(
+        "Interview (Round 1)?",
+        help_text="Whether we intend to interview this applicant",
+    )
+    interview2_decision = models.NullBooleanField(
+        "Interview (Round 2)?",
+        help_text="Whether we intend to give this applicant a second interview",
+    )
+    final_decision = EnumCharField(FinalDecision, blank=True)
+
     program_year = models.IntegerField()
     created = models.DateTimeField(auto_now_add=True)
 
@@ -360,14 +384,11 @@ class AbstractRating(models.Model):
 
 class Review(AbstractRating):
 
-    class OverallRecommendation(str, enum.Enum):
+    class OverallRecommendation(StrEnum):
 
         interview = "Interview"
         reject = "Reject"
         only_if = "Only if you need a certain type of fellow (explain below)"
-
-        def __str__(self):
-            return self.value
 
     review_id = models.AutoField(primary_key=True)
     reviewer = models.ForeignKey('review.Reviewer',

@@ -73,7 +73,7 @@ def apps_to_review(reviewer):
         reference_count=Count('reference', distinct=True),
         review_count=Count('review', distinct=True),
     ).filter(
-        decision='',
+        review_decision=True,
         program_year=settings.REVIEW_PROGRAM_YEAR,
         page_count=settings.REVIEW_SURVEY_LENGTH,
     ).exclude(

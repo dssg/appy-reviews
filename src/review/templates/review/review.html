@@ -74,27 +74,31 @@ Review an application to DSSG {{ application.program_year }}
             -moz-appearance: none;
             appearance: none;
 
-            -webkit-filter: brightness(1.8) grayscale(1) opacity(.9);
-            -moz-filter: brightness(1.8) grayscale(1) opacity(.9);
+            -webkit-filter: brightness(1.1) grayscale(0.1) opacity(.9);
+            -moz-filter: brightness(1.1) grayscale(0.1) opacity(.9);
             filter: brightness(1.1) grayscale(0.1) opacity(.9);
         }
         .rating input[type=radio]:hover {
-            -webkit-filter: brightness(1) grayscale(0) opacity(1);
-            -moz-filter: brightness(1) grayscale(0) opacity(1);
-            filter: brightness(1) grayscale(0) opacity(1);
+            -webkit-filter: brightness(1) grayscale(0) opacity(1) !important;
+            -moz-filter: brightness(1) grayscale(0) opacity(1) !important;
+            filter: brightness(1) grayscale(0) opacity(1) !important;
         }
         .rating input[type=radio]:checked {
-            -webkit-filter: none;
-            -moz-filter: none;
-            filter: none;
+            -webkit-filter: none !important;
+            -moz-filter: none !important;
+            filter: none !important;
 
             border: black 1px solid;
             border-radius: 15px;
             /* FIXME: put "padding" between border and input/image */
         }
         .rating input[type=radio][value="0"] {
-            background: url("https://twemoji.maxcdn.com/2/72x72/1f937.png");
-            background-image: url("https://twemoji.maxcdn.com/2/svg/1f937.svg"),none;
+            background: url("https://twemoji.maxcdn.com/2/72x72/2753.png");
+            background-image: url("https://twemoji.maxcdn.com/2/svg/2753.svg"),none;
+
+            -webkit-filter: brightness(1.5) grayscale(0.5) opacity(.7);
+            -moz-filter: brightness(1.5) grayscale(0.5) opacity(.7);
+            filter: brightness(1.5) grayscale(0.5) opacity(.7);
         }
         .rating input[type=radio][value="-1"] {
             background: url("https://twemoji.maxcdn.com/2/72x72/1f44e.png");
@@ -147,7 +151,7 @@ Review an application to DSSG {{ application.program_year }}
 
     <h4>Aptitude ratings</h4>
     <dl class="formatted grad3 medium-width">
-        <dt><i class="em-svg em-shrug"></i></dt>
+        <dt><i class="em-svg em-question"></i></dt>
         <dd><strong>Indeterminate</strong></dd>
         <dd>
             Select this option only if you are unable to determine from the

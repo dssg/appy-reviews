@@ -1,0 +1,304 @@
+{% extends "review/site.html" %}
+
+{% block title %}
+Review an application to DSSG {{ application.program_year }}
+{% endblock %}
+
+{% block head %}
+    <style>
+        /* section review */
+
+        #review {
+            padding-right: 1em;
+        }
+        #review li {
+            padding: 0.5em 0.5em 0 0;
+        }
+        #review label {
+            font-weight: bold;
+        }
+        #review textarea {
+            max-width: 100%;
+        }
+        #review input[type=submit] {
+            font-size: x-large;
+            font-weight: bold;
+            border-radius: 5px;
+            border-width: 1px;
+            padding: 4px 10px;
+            display: block;
+            margin: auto;
+            width: 100%;
+        }
+        #review fieldset {
+            border: threedface 1px dotted;
+            margin: 0;
+            text-align: center;
+        }
+        #review fieldset legend {
+            font-weight: bold;
+        }
+        #review fieldset ul {
+            list-style: none;
+            margin-left: 0.05em;
+            padding: 0;
+        }
+        #review fieldset li {
+            text-align: left;
+        }
+
+        @media screen and (min-width: 800px) {
+            .sidebar-scroll {
+                max-height: 100vh;
+                overflow: auto;
+            }
+            .sidebar-scroll::-webkit-scrollbar {
+                display: none;
+            }
+        }
+
+        /* end review */
+
+        /* section review ratings */
+
+        .rating input[type=radio] {
+            cursor: pointer;
+            outline: none;
+
+            height: 2em;
+            width: 2em;
+            display: inline-block;
+            vertical-align: middle;
+
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+
+            -webkit-filter: brightness(1.1) grayscale(0.1) opacity(.9);
+            -moz-filter: brightness(1.1) grayscale(0.1) opacity(.9);
+            filter: brightness(1.1) grayscale(0.1) opacity(.9);
+        }
+        .rating input[type=radio]:hover {
+            -webkit-filter: brightness(1) grayscale(0) opacity(1) !important;
+            -moz-filter: brightness(1) grayscale(0) opacity(1) !important;
+            filter: brightness(1) grayscale(0) opacity(1) !important;
+        }
+        .rating input[type=radio]:checked {
+            -webkit-filter: none !important;
+            -moz-filter: none !important;
+            filter: none !important;
+
+            border: black 1px solid;
+            border-radius: 15px;
+            /* FIXME: put "padding" between border and input/image */
+        }
+        .rating input[type=radio][value="0"] {
+            background: url("https://twemoji.maxcdn.com/2/72x72/2753.png");
+            background-image: url("https://twemoji.maxcdn.com/2/svg/2753.svg"),none;
+
+            -webkit-filter: brightness(1.5) grayscale(0.5) opacity(.7);
+            -moz-filter: brightness(1.5) grayscale(0.5) opacity(.7);
+            filter: brightness(1.5) grayscale(0.5) opacity(.7);
+        }
+        .rating input[type=radio][value="-1"] {
+            background: url("https://twemoji.maxcdn.com/2/72x72/1f44e.png");
+            background-image: url("https://twemoji.maxcdn.com/2/svg/1f44e.svg"),none;
+        }
+        .rating input[type=radio][value="1"] {
+            background: url("https://twemoji.maxcdn.com/2/72x72/1f44d.png");
+            background-image: url("https://twemoji.maxcdn.com/2/svg/1f44d.svg"),none;
+        }
+        .rating input[type=radio][value="2"] {
+            background: url("https://twemoji.maxcdn.com/2/72x72/1f64c.png");
+            background-image: url("https://twemoji.maxcdn.com/2/svg/1f64c.svg"),none;
+        }
+
+        /* end review ratings */
+
+        /* section application */
+
+        #application h3 {
+            border-bottom: grey 1px dotted;
+            padding-bottom: 0.3em;
+        }
+
+        /* end application */
+    </style>
+{% endblock %}
+
+{% block body %}
+    <h1>Review an application to DSSG {{ application.program_year }}</h1>
+
+    <p>
+        {% if review_count == 0 %}
+        You haven't submitted any reviews for this year <i class="em-svg em-confused"></i>
+        {% else %}
+            {% include "review/includes/submission-count.html" with count=review_count only %}
+        {% endif %}
+    </p>
+
+    {# TODO: "to the top" link #}
+
+    <h2>How to review</h2>
+    <p>
+        Assess the <a href="#section-application">Application</a> below, which consists
+        of two parts and as many as two <a href="#section-references">References</a>.
+    </p>
+    <p>
+        Based on your assessment, complete the <a href="#section-review">Review form</a>.
+        All parts of the review, except open commentary fields, are required.
+    </p>
+
+    <h4>Aptitude ratings</h4>
+    <dl class="formatted grad3 medium-width">
+        <dt><i class="em-svg em-question"></i></dt>
+        <dd><strong>Indeterminate</strong></dd>
+        <dd>
+            Select this option only if you are unable to determine from the
+            application the applicant's aptitude with the given subject.
+        </dd>
+
+        <dt><i class="em-svg em--1"></i></dt>
+        <dd><strong>Inadequate</strong></dd>
+        <dd>Indicates that the applicant is below the acceptability threshold for the given subject.</dd>
+
+        <dt><i class="em-svg em---1"></i></dt>
+        <dd><strong>Adequate</strong></dd>
+        <dd>Indicates that the applicant meets the threshold for the given subject.</dd>
+
+        <dt><i class="em-svg em-raised_hands"></i></dt>
+        <dd><strong>Exceptional</strong></dd>
+        <dd>Indicates that the applicant significantly exceeds the threshold of acceptability for the given subject.</dd>
+    </dl>
+
+    <div class="column-container">
+    <section id="section-review" class="column-rail-left sidebar-scroll sticky">
+        <h2>Review</h2>
+
+        <form id="review" method="post" action="{% url 'review-application' %}">
+            {{ review_form.non_field_errors }}
+
+            {% csrf_token %}
+
+            <ul class="basic">
+                {% for review_field in review_form.visible_fields %}
+                <li>
+                    {% if review_field.field.widget.input_type == 'radio' %}
+                    {% with is_rating=review_field.field.widget.is_rating %}
+                    <fieldset{% if is_rating %} class="rating"{% endif %}>
+                        <legend>{{ review_field.label }}</legend>
+
+                        {{ review_field.errors }}
+
+                        {% if is_rating %}
+                        {% for rating_option in review_field %}
+                        <label title="{{ rating_option.choice_label }}" for="{{ rating_option.id_for_label }}">
+                            {{ rating_option.tag }}
+                        </label>
+                        {% endfor %}
+                        {% else %}
+                        {{ review_field }}
+                        {% endif %}
+                    </fieldset>
+                    {% endwith %}
+                    {% else %}
+                    {{ review_field.errors }}
+                    {% if review_field.help_text %}
+                    <label for="{{ review_field.id_for_label }}">{{ review_field.help_text }}</label>
+                    {% else %}{{ review_field.label_tag }}
+                    {% endif %}
+                    {% if review_field.field.widget.input_type != 'checkbox' %}<br>{% endif %}
+                    {{ review_field }}
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+
+            {% for review_field in review_form.hidden_fields %}
+                {{ review_field }}
+            {% endfor %}
+
+            <input type="submit" value="Submit Review">
+        </form>
+    </section>
+
+    <section id="application" class="column-content">
+        <h2 id="section-application">Application</h2>
+        {% for page in application.applicationpage_set.all %}
+        {% include "review/includes/surveyentry_detail.html" with surveyentry=page fieldspec=application_fields count=forloop.counter only %}
+        {% empty %}
+        (none)
+        {% endfor %}
+
+        <h2 id="section-references">References</h2>
+        {% for reference in application.reference_set.all %}
+        {% include "review/includes/surveyentry_detail.html" with surveyentry=reference fieldspec=application_fields count=forloop.counter only %}
+        {% empty %}
+        (none)
+        {% endfor %}
+    </section>
+    </div>
+
+    <script type="text/javascript">
+        (function (window) {
+            'use strict';
+
+            window.document
+            .querySelector('section.column-content')
+            .addEventListener(
+                'click',
+                function (evt) {
+                    if (evt.target.tagName === 'A' && evt.target.href) {
+                        evt.preventDefault();
+                        window.open(evt.target.href);
+                    }
+                }
+            );
+        })(window);
+
+        (function (window) {
+            'use strict';
+
+            /* start compatibility */
+            var supportPageOffset = window.pageXOffset !== undefined,
+                isCSS1Compat = ((window.document.compatMode || "") === "CSS1Compat");
+
+            function windowScrollY () {
+                return supportPageOffset ? window.pageYOffset
+                        : isCSS1Compat ? window.document.documentElement.scrollTop
+                        : window.document.body.scrollTop;
+            }
+            /* end compatibility */
+
+            var minWidth = 800,
+                bottomMargin = 5,
+                sidebar = window.document.querySelector('section.sticky'),
+                initialOffsetTop = sidebar.offsetTop;
+
+            window
+            .addEventListener(
+                'scroll',
+                function () {
+                    var windowScroll = windowScrollY(),
+                        windowOffsetBottom = this.innerHeight + windowScroll,
+                        triggerOffsetBottom = initialOffsetTop + sidebar.offsetHeight + bottomMargin;
+
+                    if (
+                        this.innerWidth >= minWidth &&
+                        windowScroll >= initialOffsetTop &&
+                        windowOffsetBottom >= triggerOffsetBottom
+                    ) {
+                        sidebar.style.position = 'fixed';
+                        sidebar.style.bottom = bottomMargin + 'px';
+                    } else {
+                        sidebar.style.position = '';
+                        sidebar.style.bottom = '';
+                    }
+                },
+                {
+                    passive: true
+                }
+            );
+        })(window);
+    </script>
+{% endblock %}

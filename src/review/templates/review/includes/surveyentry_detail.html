@@ -1,0 +1,31 @@
+{% load review %}
+
+{% with fieldspec|lookup:surveyentry.table_name as fields %}
+<h3>{% render fields.0|default:surveyentry.table_name %}</h3>
+
+<dl class="formatted serif striped">
+{% if fields %}
+{% for field_name, composition in fields.1 %}
+    <dt>{{ field_name }}</dt>
+    <dd>
+        {% if composition %}
+            {% for key in composition %}
+                {% with key|makelist as complex_key %}
+                {% with complex_key.0 as true_name %}
+                {% include "review/includes/surveyentry_detail_value.html" with field_name=true_name field_value=surveyentry.entry|multilookup:key only %}
+                {% endwith %}
+                {% endwith %}
+            {% endfor %}
+        {% else %}
+            {% include "review/includes/surveyentry_detail_value.html" with field_name=field_name field_value=surveyentry.entry|lookup:field_name only %}
+        {% endif %}
+    </dd>
+{% endfor %}
+{% else %}
+    {% for key, value in surveyentry.entry.items %}
+    <dt>{{ key }}</dt>
+    <dd>{{ value|linebreaksbr }}</dd>
+    {% endfor %}
+{% endif %}
+</dl>
+{% endwith %}

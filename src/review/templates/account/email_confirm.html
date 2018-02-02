@@ -1,0 +1,48 @@
+{# ported from allauth #}
+{# allauth/templates/account/email_confirm.html #}
+{% extends "review/site.html" %}
+
+{% load i18n %}
+{% load account %}
+
+{% block page_title %}{% trans "Confirm E-mail Address" %} | {% endblock %}
+
+
+{% block body %}
+
+{% with email=confirmation.email_address.email %}
+
+<h2>{% trans "Confirm E-mail Address" %}</h2>
+
+{% if confirmation %}
+
+{% user_display confirmation.email_address.user as user_display %}
+
+<p>{% blocktrans %}Please confirm that <a href="mailto:{{ email }}">{{ email }}</a> is your e-mail address.{% endblocktrans %}</p>
+
+<form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+    {% csrf_token %}
+    <p>
+        <button type="submit">{% trans 'Confirm' %}</button>
+    </p>
+</form>
+
+{% else %}
+
+{% url 'account_email' as email_url %}
+
+<p>{% blocktrans %}This e-mail confirmation link expired or is invalid. Please <a href="{{ email_url }}">issue a new e-mail confirmation request</a>.{% endblocktrans %}</p>
+
+{% endif %}
+
+{% if not user.is_authenticated %}
+<h3>Sign In</h3>
+
+<p>
+    Is <a href="mailto:{{ email }}">{{ email }}</a> linked to a third-party account, such as Google or GitHub?
+    Instead, <a href="{% url 'account_login' %}">sign in</a> without a password!
+</p>
+{% endif %}
+
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,14 @@
+version: '2'
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        TARGET: development
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app
+    environment:
+      APPY_DEBUG: 1

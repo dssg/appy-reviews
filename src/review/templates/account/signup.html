@@ -1,0 +1,33 @@
+{# ported from allauth #}
+{# allauth/templates/account/signup.html #}
+{% extends "review/site.html" %}
+
+{% load i18n %}
+
+{% block page_title %}{% trans "Signup" %} | {% endblock %}
+
+{% block head %}
+    <style>
+        form.signup label {
+            display: inline-block;
+            width: 8em;
+            font-weight: bold;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<h2>{% trans "Sign Up" %}</h2>
+
+<p>{% blocktrans %}Already have an account? Then please <a href="{{ login_url }}">sign in</a>.{% endblocktrans %}</p>
+
+<form class="signup" id="signup_form" method="post" action="{% url 'account_signup' %}">
+  {% csrf_token %}
+  {{ form.as_p }}
+  {% if redirect_field_value %}
+  <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+  {% endif %}
+  <button type="submit">{% trans "Sign Up" %} &raquo;</button>
+</form>
+
+{% endblock %}

@@ -1,0 +1,22 @@
+Hello from Appy the DSSG Application Review App!
+
+You're receiving this e-mail because the e-mail address {{ user.email }} was submitted to review applications to DSSG {{ program_year }}.
+
+{% if verified %}Please proceed via Appy at {{ activate_url }}{% else %}To confirm this is correct, go to {{ activate_url }}
+
+After confirming your e-mail, you will be signed in to Appy, to which you can always return by visiting {{ domain }}.{% endif %}
+
+Appy will successively show you prioritized applications to review. Once you have submitted your review, Appy will automatically fetch the next one for you, and increment your total reviewed application count at the top of the page. You can review as many applications as you want; (30-40 would be nice – more would be great!).
+
+We would really appreciate your finishing this first round of application reviews by February 14, so you can celebrate Valentine's Day without any guilt. We will be moving people to the interview round on a rolling basis; so, the sooner you submit your reviews, the sooner we are able schedule interviews. Our goal is to finish the first round of interviews by Feb 22, and final round interviews by March 1.
+
+Here's an overview of our schedule:
+
+Application Reviews: February 5-14
+Round 1 Interviews: Feb 12-22
+Round 2 Interviews: Feb 19 - March 1 
+Final Decisions: March 1-15
+
+Thank you from Appy & DSSG!
+
+{{ domain }}

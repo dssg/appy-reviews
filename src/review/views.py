@@ -41,7 +41,10 @@ class ReviewForm(forms.ModelForm):
     # (ModelForm insists on inserting it)
     overall_recommendation = forms.ChoiceField(
         widget=forms.RadioSelect,
-        choices=list(models.Review.OverallRecommendation.__members__.items()),
+        choices=[
+            (name, str(label)) for (name, label)
+            in models.Review.OverallRecommendation.__members__.items()
+        ],
     )
 
     class Meta:

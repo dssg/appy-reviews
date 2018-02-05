@@ -7,7 +7,7 @@ from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.core.mail import send_mail
 from django.db import connection, models
 from django.db.models import fields
-from django.utils import datastructures, timezone
+from django.utils import datastructures, safestring, timezone
 
 from descriptors import cachedproperty
 
@@ -388,7 +388,10 @@ class Review(AbstractRating):
 
         interview = "Interview"
         reject = "Reject"
-        only_if = "Interview *only* if you need a certain type of fellow (explain below)"
+        only_if = "Interview <em>only</em> if you need a certain type of fellow (explain below)"
+
+        def __str__(self):
+            return safestring.mark_safe(self.value)
 
     review_id = models.AutoField(primary_key=True)
     reviewer = models.ForeignKey('review.Reviewer',

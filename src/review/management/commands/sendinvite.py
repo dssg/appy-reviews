@@ -24,6 +24,11 @@ class Command(LabelCommand):
             help="create reviewer(s) with given email address(es)",
         )
         parser.add_argument(
+            '-f', '--force',
+            action='store_true',
+            help="continue regardless of errors",
+        )
+        parser.add_argument(
             '-t', '--template',
             default='account/email/reviewer_invitation',
             help="email template prefix "
@@ -34,17 +39,23 @@ class Command(LabelCommand):
         output = super().handle(*emails, **options)
         return output + '\ndone' if output else 'done'
 
-    def handle_label(self, email, create, template, **_options):
-        if create:
-            try:
-                reviewer = Reviewer.objects.create_reviewer(email, None)
-            except IntegrityError:
-                raise CommandError(f'reviewer already exists: {email}')
-        else:
-            try:
-                reviewer = Reviewer.objects.get(email=email)
-            except Reviewer.DoesNotExist:
-                raise CommandError(f'no such reviewer: {email}')
+    def handle_label(self, email, create, force, template, **_options):
+        try:
+            if create:
+                try:
+                    reviewer = Reviewer.objects.create_reviewer(email, None)
+                except IntegrityError:
+                    raise CommandError(f'{email}: reviewer already exists')
+            else:
+                try:
+                    reviewer = Reviewer.objects.get(email=email)
+                except Reviewer.DoesNotExist:
+                    raise CommandError(f'{email}: no such reviewer')
+        except CommandError as exc:
+            if force:
+                self.stderr.write(f'✘ {exc}')
+                return
+            raise
 
         self.send_email(reviewer, template)
         self.stdout.write(f'✔ {email}')

@@ -26,7 +26,11 @@ class UnexpectedReviewer(LookupError):
     pass
 
 
-def apps_to_review(reviewer):
+def apps_to_review(reviewer, *, application_id=None, limit=None):
+    """Construct an ordered RawQuerySet of Applications available to
+    the Reviewer to review.
+
+    """
     # Test that reviewer can help with application reviews
     #
     # (For the moment, simply using data collected from wufoo;
@@ -65,33 +69,89 @@ def apps_to_review(reviewer):
 
     # Return stream of applications appropriate to reviewer,
     # ordered by appropriateness
-    return models.Application.objects.prefetch_related(
-        # view will iterate over these,
-        # so prefetch them here
-        # TODO: since view only does this once, check that prefetch
-        # TODO: makes any difference
-        # TODO: and/or regardless perhaps move this prefetch to view
-        'applicationpage_set',
-        'reference_set',
-    ).annotate(
-        # extend query with these for filtering/ordering
-        page_count=Count('applicationpage', distinct=True),
-        review_count=Count('review', distinct=True),
-    ).filter(
-        # only consider applications ...
-        # ... for this program year
-        program_year=settings.REVIEW_PROGRAM_YEAR,
-        # ... which the applicant completed
-        page_count=settings.REVIEW_SURVEY_LENGTH,
-        # ... which we haven't culled
-        review_decision=True,
-    ).exclude(
-        # exclude applications which this reviewer has already reviewed
-        review__reviewer=reviewer,
-    ).order_by(
-        # prioritize applications by their lack of reviews
-        'review_count',
-        # ... otherwise *randomize* applications to ensure simultaneous
-        # reviewers do not review the same application
-        '?',
+    #
+    # This is the QuerySet we want, using Django's ORM:
+    #
+    # return models.Application.objects.annotate(
+    #     # extend query with these for filtering/ordering
+    #     page_count=Count('applicationpage', distinct=True),
+    #     review_count=Count('review', distinct=True),
+    # ).filter(
+    #     # only consider applications ...
+    #     # ... for this program year
+    #     program_year=settings.REVIEW_PROGRAM_YEAR,
+    #     # ... which the applicant completed
+    #     page_count=settings.REVIEW_SURVEY_LENGTH,
+    #     # ... which we haven't culled
+    #     review_decision=True,
+    # ).exclude(
+    #     # exclude applications which this reviewer has already reviewed
+    #     review__reviewer=reviewer,
+    # ).order_by(
+    #     # prioritize applications by their lack of reviews
+    #     'review_count',
+    #     # ... otherwise *randomize* applications to ensure simultaneous
+    #     # reviewers do not review the same application
+    #     '?',
+    # )
+    #
+    # However, it's an ORM ...
+    # ... and it has at least this bug:
+    #   https://code.djangoproject.com/ticket/26390
+    #   https://github.com/django/django/pull/6322
+    #
+    # We'll probably want/need to construct our raw query anyway;
+    # so, we'll start with the *correct* compilation of the above,
+    # and try not to make this interface *too* painful for the consuming
+    # side of the app, (due to the limitations outside of the Django
+    # standard QuerySet).
+    #
+    # For starters, while we intend here to define the complete set of
+    # applications available to the reviewer, consumers now receiving a
+    # RawQuerySet are unable to further refine this set for their
+    # purposes; so, we'll accept and interpolate their refinements here.
+    limit_expr = '' if limit is None else 'LIMIT %(limit)s'
+
+    extra_where_expr = '' if application_id is None else '''AND
+        "application"."application_id" = %(application_id)s'''
+
+    return models.Application.objects.raw(
+        f'''\
+            SELECT "application".*
+            FROM "application"
+
+            LEFT OUTER JOIN "application_page" USING ("application_id")
+            LEFT OUTER JOIN "review" USING ("application_id")
+
+            -- only consider applications ...
+            WHERE
+                -- ... which we haven't culled:
+                "application"."review_decision" AND
+                -- ... for this program year:
+                "application"."program_year" = %(program_year)s AND
+                -- which this reviewer hasn't already reviewed:
+                "application"."application_id" NOT IN (
+                    SELECT R1."application_id" FROM "review" R1 WHERE R1."reviewer_id" = %(reviewer_id)s
+                ) {extra_where_expr}
+
+            -- ... and which the applicant completed:
+            GROUP BY "application"."application_id"
+            HAVING COUNT(DISTINCT "application_page"."application_page_id") = %(page_count)s
+
+            ORDER BY
+                -- prioritize applications by their lack of reviews:
+                COUNT(DISTINCT "review"."review_id") ASC,
+                -- ... but otherwise *randomize* applications to ensure
+                -- simultaneous reviewers do not review the same application:
+                RANDOM() ASC
+
+            {limit_expr}
+        ''',
+        {
+            'page_count': settings.REVIEW_SURVEY_LENGTH,
+            'program_year': settings.REVIEW_PROGRAM_YEAR,
+            'reviewer_id': reviewer.reviewer_id,
+            'application_id': application_id,
+            'limit': limit,
+        }
     )

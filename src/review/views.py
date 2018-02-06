@@ -88,11 +88,12 @@ def review(request):
         if not application_id.isdigit():
             return http.HttpResponseBadRequest("Bad request")
 
-        applications = query.apps_to_review(request.user)
+        applications = query.apps_to_review(request.user,
+                                            application_id=application_id)
 
         try:
-            application = applications.get(application_id=application_id)
-        except models.Application.DoesNotExist:
+            (application,) = applications
+        except ValueError:
             # application *may* exist but it is not in the set of those
             # allowed to reviewer
             return http.HttpResponseForbidden("Forbidden")
@@ -108,9 +109,11 @@ def review(request):
             messages.success(request, 'Review submitted')
             return redirect('review-application')
     else:
+        applications = query.apps_to_review(request.user, limit=1)
+
         try:
-            application = query.apps_to_review(request.user)[0]
-        except IndexError:
+            (application,) = applications
+        except ValueError:
             return TemplateResponse(request, 'review/noapps.html', {
                 'program_year': settings.REVIEW_PROGRAM_YEAR,
                 'review_count': request.user.reviews.filter(

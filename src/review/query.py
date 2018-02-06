@@ -101,10 +101,10 @@ def apps_to_review(reviewer, *, application_id=None, limit=None):
     #   https://github.com/django/django/pull/6322
     #
     # We'll probably want/need to construct our raw query anyway;
-    # so, we'll start with the *correct* compilation of the above,
-    # and try not to make this interface *too* painful for the consuming
-    # side of the app, (due to the limitations outside of the Django
-    # standard QuerySet).
+    # so, we'll start with a variation of the *correct* compilation of
+    # the above, and try not to make this interface *too* painful for
+    # the consuming side of the app, (due to the limitations outside of
+    # the Django standard QuerySet).
     #
     # For starters, while we intend here to define the complete set of
     # applications available to the reviewer, consumers now receiving a

@@ -66,19 +66,32 @@ def apps_to_review(reviewer):
     # Return stream of applications appropriate to reviewer,
     # ordered by appropriateness
     return models.Application.objects.prefetch_related(
+        # view will iterate over these,
+        # so prefetch them here
+        # TODO: since view only does this once, check that prefetch
+        # TODO: makes any difference
+        # TODO: and/or regardless perhaps move this prefetch to view
         'applicationpage_set',
         'reference_set',
     ).annotate(
+        # extend query with these for filtering/ordering
         page_count=Count('applicationpage', distinct=True),
-        reference_count=Count('reference', distinct=True),
         review_count=Count('review', distinct=True),
     ).filter(
-        review_decision=True,
+        # only consider applications ...
+        # ... for this program year
         program_year=settings.REVIEW_PROGRAM_YEAR,
+        # ... which the applicant completed
         page_count=settings.REVIEW_SURVEY_LENGTH,
+        # ... which we haven't culled
+        review_decision=True,
     ).exclude(
+        # exclude applications which this reviewer has already reviewed
         review__reviewer=reviewer,
     ).order_by(
+        # prioritize applications by their lack of reviews
         'review_count',
-        '-reference_count',
+        # ... otherwise *randomize* applications to ensure simultaneous
+        # reviewers do not review the same application
+        '?',
     )

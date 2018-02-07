@@ -368,6 +368,7 @@ class AbstractRating(models.Model):
     programming_rating = models.IntegerField("Programming")
     machine_learning_rating = models.IntegerField("Stats & Machine Learning")
     data_handling_rating = models.IntegerField("Data Handling & Manipulation")
+    social_science = models.IntegerField("Social Science", null=True)  # TODO: remove null
     interest_in_good_rating = models.IntegerField("Interest in Social Good")
     communication_rating = models.IntegerField("Communication Ability")
     teamwork_rating = models.IntegerField("Teamwork and Collaboration")

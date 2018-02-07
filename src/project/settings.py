@@ -94,6 +94,9 @@ INSTALLED_APPS = [
     # 'allauth.socialaccount.providers.stackexchange',
     # 'allauth.socialaccount.providers.trello',
     # 'allauth.socialaccount.providers.twitter',
+    #
+    # django-mathfilters
+    'mathfilters',
 
     #
     # Django "contrib"

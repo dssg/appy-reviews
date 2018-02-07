@@ -1,5 +1,10 @@
 {% load review %}
-You've submitted {{ count }} review{{ count|pluralize }} for this year{% if count < 3 %}.
-    {% elif count < 5 %} <i class="em-svg em---1"></i>
-    {% else %}{{ '!'|repeat:count }}
+{% load mathfilters %}
+You've submitted {{ count }} review{{ count|pluralize }} for this year{% if count < 10 %}.
+    {% elif count < 20 %} <i class="em-svg em---1"></i>
+    {% elif count < 30 %} <i class="em-svg em-raised_hands"></i>
+    {% elif count < 40 %} <i class="em-svg em-tada"></i>
+    {% elif count < 50 %} <i class="em-svg em-boom"></i>
+    {% elif count < 60 %} <i class="em-svg em-scream_cat"></i>
+    {% else %}{% with count|div:10 as tiny_count %}{{ '!!1'|repeat:tiny_count }}{% endwith %}
     {% endif %}

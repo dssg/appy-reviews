@@ -11,7 +11,7 @@ register = template.Library()
 @register.filter
 @stringfilter
 def repeat(value, count, join=''):
-    return join.join(itertools.repeat(value, count))
+    return join.join(itertools.repeat(value, int(count)))
 
 
 @register.filter

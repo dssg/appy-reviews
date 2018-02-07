@@ -109,7 +109,8 @@ def apps_to_review(reviewer, *, application_id=None, limit=None):
     # For starters, while we intend here to define the complete set of
     # applications available to the reviewer, consumers now receiving a
     # RawQuerySet are unable to further refine this set for their
-    # purposes; so, we'll accept and interpolate their refinements here.
+    # purposes, (from within the database, rather than in Python); so,
+    # we'll accept and interpolate their refinements here.
     limit_expr = '' if limit is None else 'LIMIT %(limit)s'
 
     extra_where_expr = '' if application_id is None else '''AND

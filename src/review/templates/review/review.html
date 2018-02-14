@@ -180,7 +180,7 @@ Review a DSSG {{ application.program_year }} Fellow Application
     <section id="section-review" class="column-rail-left sidebar-scroll sticky">
         <h2>Review</h2>
 
-        <form id="review" method="post" action="{% url 'review-application' %}">
+        <form id="review" method="post" action="{{ request.path }}">
             {{ review_form.non_field_errors }}
 
             {% csrf_token %}

@@ -95,45 +95,67 @@ def unexpected_review(handler):
 @require_http_methods(['GET', 'POST'])
 @login_required
 @unexpected_review
-def review(request):
-    if request.method == 'POST':
-        application_id = request.POST.get('application', '')
-
-        if not application_id.isdigit():
-            return http.HttpResponseBadRequest("Bad request")
-
+def review(request, application_id=None):
+    if application_id:
         applications = query.apps_to_review(request.user,
-                                            application_id=application_id)
-
+                                            application_id=application_id,
+                                            include_reviewed=True)
         try:
             (application,) = applications
         except ValueError:
-            # application *may* exist but it is not in the set of those
-            # allowed to reviewer
-            return http.HttpResponseForbidden("Forbidden")
+            return http.HttpResponseNotFound("Could not find application to review")
+
+        try:
+            review = application.review_set.get(reviewer=request.user)
+        except models.Review.DoesNotExist:
+            review = None
+    else:
+        review = None
+
+    if request.method == 'POST':
+        if application_id is None:
+            application_id = request.POST.get('application', '')
+
+            if not application_id.isdigit():
+                return http.HttpResponseBadRequest("Bad request")
+
+            applications = query.apps_to_review(request.user,
+                                                application_id=application_id)
+
+            try:
+                (application,) = applications
+            except ValueError:
+                # application *may* exist but it is not in the set of those
+                # allowed to reviewer
+                return http.HttpResponseForbidden("Forbidden")
+        elif request.POST.get('application') != str(application_id):
+            return http.HttpResponseBadRequest("Bad request")
 
         review_form = ReviewForm(data=request.POST,
+                                 instance=review,
                                  reviewer=request.user)
         if review_form.is_valid():
             with transaction.atomic():
                 review_form.save()
 
             messages.success(request, 'Review submitted')
-            return redirect('review-application')
+            return redirect(request.path)
     else:
-        applications = query.apps_to_review(request.user, limit=1)
+        if application_id is None:
+            applications = query.apps_to_review(request.user, limit=1)
 
-        try:
-            (application,) = applications
-        except ValueError:
-            return TemplateResponse(request, 'review/noapps.html', {
-                'program_year': settings.REVIEW_PROGRAM_YEAR,
-                'review_count': request.user.reviews.filter(
-                    application__program_year=settings.REVIEW_PROGRAM_YEAR
-                ).count(),
-            })
+            try:
+                (application,) = applications
+            except ValueError:
+                return TemplateResponse(request, 'review/noapps.html', {
+                    'program_year': settings.REVIEW_PROGRAM_YEAR,
+                    'review_count': request.user.reviews.filter(
+                        application__program_year=settings.REVIEW_PROGRAM_YEAR
+                    ).count(),
+                })
 
-        review_form = ReviewForm(initial={'application': application},
+        review_form = ReviewForm(instance=review,
+                                 initial={'application': application},
                                  reviewer=request.user)
 
     return TemplateResponse(request, 'review/review.html', {

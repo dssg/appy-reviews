@@ -26,7 +26,8 @@ class UnexpectedReviewer(LookupError):
     pass
 
 
-def apps_to_review(reviewer, *, application_id=None, limit=None):
+def apps_to_review(reviewer, *, application_id=None, limit=None,
+                   include_reviewed=False):
     """Construct an ordered RawQuerySet of Applications available to
     the Reviewer to review.
 
@@ -113,6 +114,14 @@ def apps_to_review(reviewer, *, application_id=None, limit=None):
     # we'll accept and interpolate their refinements here.
     limit_expr = '' if limit is None else 'LIMIT %(limit)s'
 
+    reviewed_where_expr = '' if include_reviewed else '''AND
+        -- which this reviewer hasn't already reviewed:
+        NOT EXISTS (
+            SELECT 1 FROM "review" R1
+            WHERE R1."application_id" = "application"."application_id" AND
+                    R1."reviewer_id" = %(reviewer_id)s
+        )'''
+
     extra_where_expr = '' if application_id is None else '''AND
         "application"."application_id" = %(application_id)s'''
 
@@ -141,13 +150,7 @@ def apps_to_review(reviewer, *, application_id=None, limit=None):
                 -- ... which we haven't culled:
                 "application"."review_decision" IS TRUE AND
                 -- ... for this program year:
-                "application"."program_year" = %(program_year)s AND
-                -- which this reviewer hasn't already reviewed:
-                NOT EXISTS (
-                    SELECT 1 FROM "review" R1
-                    WHERE R1."application_id" = "application"."application_id" AND
-                          R1."reviewer_id" = %(reviewer_id)s
-                ) {extra_where_expr}
+                "application"."program_year" = %(program_year)s {reviewed_where_expr} {extra_where_expr}
 
             -- ... and which the applicant completed:
             GROUP BY "application"."application_id"

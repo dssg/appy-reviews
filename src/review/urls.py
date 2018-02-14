@@ -6,6 +6,7 @@ from . import views
 
 urlpatterns = [
     path('review/application/', views.review, name='review-application'),
+    path('review/application/<int:application_id>/', views.review, name='review-application-detail'),
     # path('review/interview/', views.review, name='review-interview'),
     # path('review/interview/...', views.review, name='review-interview-detail'),
 

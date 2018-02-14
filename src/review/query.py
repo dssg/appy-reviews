@@ -123,16 +123,30 @@ def apps_to_review(reviewer, *, application_id=None, limit=None):
 
             LEFT OUTER JOIN "application_page" USING ("application_id")
             LEFT OUTER JOIN "review" USING ("application_id")
+            LEFT OUTER JOIN "review" "positive_review" ON (
+                "application"."application_id" = "positive_review"."application_id" AND
+                "positive_review"."overall_recommendation" = '{models.Review.OverallRecommendation.interview.name}'
+            )
+            LEFT OUTER JOIN "review" "unknown_review" ON (
+                "application"."application_id" = "unknown_review"."application_id" AND
+                "unknown_review"."overall_recommendation" = '{models.Review.OverallRecommendation.only_if.name}'
+            )
+            LEFT OUTER JOIN "review" "negative_review" ON (
+                "application"."application_id" = "negative_review"."application_id" AND
+                "negative_review"."overall_recommendation" = '{models.Review.OverallRecommendation.reject.name}'
+            )
 
             -- only consider applications ...
             WHERE
                 -- ... which we haven't culled:
-                "application"."review_decision" AND
+                "application"."review_decision" IS TRUE AND
                 -- ... for this program year:
                 "application"."program_year" = %(program_year)s AND
                 -- which this reviewer hasn't already reviewed:
-                "application"."application_id" NOT IN (
-                    SELECT R1."application_id" FROM "review" R1 WHERE R1."reviewer_id" = %(reviewer_id)s
+                NOT EXISTS (
+                    SELECT 1 FROM "review" R1
+                    WHERE R1."application_id" = "application"."application_id" AND
+                          R1."reviewer_id" = %(reviewer_id)s
                 ) {extra_where_expr}
 
             -- ... and which the applicant completed:
@@ -142,9 +156,19 @@ def apps_to_review(reviewer, *, application_id=None, limit=None):
             ORDER BY
                 -- prioritize applications by their lack of reviews:
                 COUNT(DISTINCT "review"."review_id") ASC,
+
+                -- ... then by the uncertainty of their reviews:
+                COUNT(DISTINCT "unknown_review"."review_id") DESC,
+
+                -- ... then by the positivity of their reviews:
+                COUNT(DISTINCT "positive_review"."review_id") DESC,
+
+                -- ... and then by the lack of negativity of their reviews:
+                COUNT(DISTINCT "negative_review"."review_id") ASC,
+
                 -- ... but otherwise *randomize* applications to ensure
                 -- simultaneous reviewers do not review the same application:
-                RANDOM() ASC
+                RANDOM()
 
             {limit_expr}
         ''',

@@ -15,6 +15,15 @@
 
             /* section general */
 
+            .hint-size {
+                font-size: 15px;
+            }
+            .hint-size .em-svg {
+                height: 1em;
+                width: 1em;
+                vertical-align: text-bottom;
+            }
+
             .column-rail-left {
                 width: 300px;
             }
@@ -199,6 +208,17 @@
             </div>
             <ul class="horizontal piped pull-right">
                 {% if user.is_authenticated %}
+                <li class="hint-size">
+                    {% if user.first_name %}
+                    <span title="{{ user.email }}">{{ user.first_name }}</span>
+                    {% else %}
+                    {{ user.email }}
+                    {% endif %}
+
+                    {% if user.trusted %}
+                    <i title="Trusted User" class="em-svg em-tophat"></i>
+                    {% endif %}
+                </li>
                 {# <li><a href="{% url 'account_email' %}">Change E-mail</a></li> #}
                 <li><a href="{% url 'account_logout' %}">Sign Out</a></li>
                 {% else %}

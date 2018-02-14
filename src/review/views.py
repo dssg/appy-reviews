@@ -65,6 +65,20 @@ class ReviewForm(forms.ModelForm):
             application=forms.HiddenInput,
         )
 
+    def __init__(self, *args, reviewer, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.reviewer = reviewer
+
+        if self.reviewer.trusted:
+            for field_name in RATING_FIELDS:
+                self.fields[field_name].required = False
+
+    def full_clean(self):
+        super().full_clean()
+
+        if not self.errors:
+            self.instance.reviewer = self.reviewer
+
 
 def unexpected_review(handler):
     def wrapped(request, *args, **kwargs):
@@ -98,13 +112,11 @@ def review(request):
             # allowed to reviewer
             return http.HttpResponseForbidden("Forbidden")
 
-        review_form = ReviewForm(data=request.POST)
+        review_form = ReviewForm(data=request.POST,
+                                 reviewer=request.user)
         if review_form.is_valid():
             with transaction.atomic():
-                review = review_form.save(commit=False)
-                review.reviewer = request.user
-                review.save()
-                review_form.save_m2m()
+                review_form.save()
 
             messages.success(request, 'Review submitted')
             return redirect('review-application')
@@ -121,7 +133,8 @@ def review(request):
                 ).count(),
             })
 
-        review_form = ReviewForm(initial={'application': application})
+        review_form = ReviewForm(initial={'application': application},
+                                 reviewer=request.user)
 
     return TemplateResponse(request, 'review/review.html', {
         'application': application,

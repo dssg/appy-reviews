@@ -146,7 +146,11 @@ Review a DSSG {{ application.program_year }} Fellow Application
     </p>
     <p>
         Based on your review, complete the <a href="#section-review">Review form</a>.
+        {% if user.trusted %}
+        You're a <strong>trusted</strong> reviewer; so, only the overall recommendation is required.
+        {% else %}
         All parts of the review, except open text fields, are required.
+        {% endif %}
     </p>
     <p>Keep in mind that 20% of applicants will move to the interview round.</p>
 

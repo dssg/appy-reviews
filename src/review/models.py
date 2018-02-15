@@ -398,7 +398,7 @@ class ReviewQuerySet(models.QuerySet):
         )
 
 
-class Review(AbstractRating):
+class ApplicationReview(AbstractRating):
 
     class OverallRecommendation(StrEnum):
 
@@ -412,8 +412,10 @@ class Review(AbstractRating):
     review_id = models.AutoField(primary_key=True)
     reviewer = models.ForeignKey('review.Reviewer',
                                  on_delete=models.CASCADE,
-                                 related_name='reviews')
-    application = models.ForeignKey('review.Application', on_delete=models.CASCADE)
+                                 related_name='application_reviews')
+    application = models.ForeignKey('review.Application',
+                                    on_delete=models.CASCADE,
+                                    related_name='application_reviews')
     submitted = models.DateTimeField(auto_now_add=True)
 
     overall_recommendation = EnumCharField(
@@ -431,12 +433,14 @@ class Review(AbstractRating):
                   "judge from the application and references?",
     )
     would_interview = models.BooleanField(
-        help_text="If this applicant moves to the interview round, would you like to interview them?",
+        help_text="If this applicant moves to the interview round, would "
+                  "you like to interview them?",
     )
 
     objects = ReviewQuerySet.as_manager()
 
     class Meta:
+        # TODO: migrate db table to "application_review"
         db_table = 'review'
         ordering = ('-submitted',)
         unique_together = (

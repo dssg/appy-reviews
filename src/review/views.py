@@ -18,7 +18,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 from review import models, query
 
 
-RATING_FIELDS = tuple(models.Review.rating_fields())
+RATING_FIELDS = tuple(models.ApplicationReview.rating_fields())
 
 
 class RatingWidget(forms.RadioSelect):
@@ -43,12 +43,12 @@ class ReviewForm(forms.ModelForm):
         widget=forms.RadioSelect,
         choices=[
             (name, str(label)) for (name, label)
-            in models.Review.OverallRecommendation.__members__.items()
+            in models.ApplicationReview.OverallRecommendation.__members__.items()
         ],
     )
 
     class Meta:
-        model = models.Review
+        model = models.ApplicationReview
         fields = (
             'application',
         ) + RATING_FIELDS + (
@@ -179,8 +179,8 @@ def review(request, application_id=None):
             return http.HttpResponseNotFound("Could not find application to review")
 
         try:
-            review = application.review_set.get(reviewer=request.user)
-        except models.Review.DoesNotExist:
+            review = application.application_reviews.get(reviewer=request.user)
+        except models.ApplicationReview.DoesNotExist:
             review = None
     else:
         review = None
@@ -222,9 +222,7 @@ def review(request, application_id=None):
             except ValueError:
                 return TemplateResponse(request, 'review/noapps.html', {
                     'program_year': settings.REVIEW_PROGRAM_YEAR,
-                    'review_count': request.user.reviews.filter(
-                        application__program_year=settings.REVIEW_PROGRAM_YEAR
-                    ).count(),
+                    'review_count': request.user.application_reviews.current_year().count(),
                 })
 
         review_form = ReviewForm(instance=review,
@@ -235,9 +233,7 @@ def review(request, application_id=None):
         'application': application,
         'application_fields': settings.REVIEW_APPLICATION_FIELDS,
         'review_form': review_form,
-        'review_count': request.user.reviews.filter(
-            application__program_year=settings.REVIEW_PROGRAM_YEAR
-        ).count(),
+        'review_count': request.user.application_reviews.current_year().count(),
     })
 
 

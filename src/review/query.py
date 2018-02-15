@@ -26,9 +26,13 @@ class UnexpectedReviewer(LookupError):
     pass
 
 
-def apps_to_review(reviewer, *, application_id=None, limit=None):
-    """Construct an ordered RawQuerySet of Applications available to
-    the Reviewer to review.
+def apps_to_review(reviewer, *, application_id=None, limit=None,
+                   include_reviewed=False, ordered=True):
+    """Construct a query set of Applications available to the Reviewer
+    to review.
+
+    By default, an ordered RawQuerySet is returned. Set `ordered=False`
+    to construct a typical QuerySet without special ordering.
 
     """
     # Test that reviewer can help with application reviews
@@ -68,33 +72,37 @@ def apps_to_review(reviewer, *, application_id=None, limit=None):
             assert result
 
     # Return stream of applications appropriate to reviewer,
-    # ordered by appropriateness
-    #
-    # This is the QuerySet we want, using Django's ORM:
-    #
-    # return models.Application.objects.annotate(
-    #     # extend query with these for filtering/ordering
-    #     page_count=Count('applicationpage', distinct=True),
-    #     review_count=Count('review', distinct=True),
-    # ).filter(
-    #     # only consider applications ...
-    #     # ... for this program year
-    #     program_year=settings.REVIEW_PROGRAM_YEAR,
-    #     # ... which the applicant completed
-    #     page_count=settings.REVIEW_SURVEY_LENGTH,
-    #     # ... which we haven't culled
-    #     review_decision=True,
-    # ).exclude(
-    #     # exclude applications which this reviewer has already reviewed
-    #     review__reviewer=reviewer,
-    # ).order_by(
-    #     # prioritize applications by their lack of reviews
-    #     'review_count',
-    #     # ... otherwise *randomize* applications to ensure simultaneous
-    #     # reviewers do not review the same application
-    #     '?',
-    # )
-    #
+    # optionally ordered by appropriateness
+
+    if not ordered:
+        # This is the QuerySet we want, using Django's ORM:
+        applications = models.Application.objects.annotate(
+            # extend query with these for filtering/ordering
+            page_count=Count('applicationpage', distinct=True),
+        ).filter(
+            # only consider applications ...
+            # ... for this program year
+            program_year=settings.REVIEW_PROGRAM_YEAR,
+            # ... which the applicant completed
+            page_count=settings.REVIEW_SURVEY_LENGTH,
+            # ... which we haven't culled
+            review_decision=True,
+        )
+
+        if application_id:
+            applications = applications.filter(application_id=application_id)
+
+        if not include_reviewed:
+            applications = applications.exclude(
+                # exclude applications which this reviewer has already reviewed
+                review__reviewer=reviewer,
+            )
+
+        if limit is not None:
+            applications = applications[:limit]
+
+        return applications
+
     # However, it's an ORM ...
     # ... and it has at least this bug:
     #   https://code.djangoproject.com/ticket/26390
@@ -112,6 +120,14 @@ def apps_to_review(reviewer, *, application_id=None, limit=None):
     # purposes, (from within the database, rather than in Python); so,
     # we'll accept and interpolate their refinements here.
     limit_expr = '' if limit is None else 'LIMIT %(limit)s'
+
+    reviewed_where_expr = '' if include_reviewed else '''AND
+        -- which this reviewer hasn't already reviewed:
+        NOT EXISTS (
+            SELECT 1 FROM "review" R1
+            WHERE R1."application_id" = "application"."application_id" AND
+                    R1."reviewer_id" = %(reviewer_id)s
+        )'''
 
     extra_where_expr = '' if application_id is None else '''AND
         "application"."application_id" = %(application_id)s'''
@@ -141,13 +157,7 @@ def apps_to_review(reviewer, *, application_id=None, limit=None):
                 -- ... which we haven't culled:
                 "application"."review_decision" IS TRUE AND
                 -- ... for this program year:
-                "application"."program_year" = %(program_year)s AND
-                -- which this reviewer hasn't already reviewed:
-                NOT EXISTS (
-                    SELECT 1 FROM "review" R1
-                    WHERE R1."application_id" = "application"."application_id" AND
-                          R1."reviewer_id" = %(reviewer_id)s
-                ) {extra_where_expr}
+                "application"."program_year" = %(program_year)s {reviewed_where_expr} {extra_where_expr}
 
             -- ... and which the applicant completed:
             GROUP BY "application"."application_id"

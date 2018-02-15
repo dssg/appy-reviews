@@ -1,0 +1,147 @@
+{% extends "review/site.html" %}
+
+{% block title %}
+DSSG {{ program_year }} Application Reviews
+{% endblock %}
+
+{% block head %}
+    <style>
+        .clear {
+            clear: both;
+        }
+        #look-up input[type=text] {
+            width: 450px;
+            box-sizing: border-box;
+        }
+        #look-up input[type=submit] {
+            width: 50px;
+            margin-left: -52px;
+            border: 0;
+        }
+        #look-up-results {
+            margin-top: 0.5em;
+            border: dotted #c7c7c7 1px;
+            height: 150px;
+            overflow-y: auto;
+        }
+        #look-up-results > li {
+            line-height: 2em;
+            padding: 0 5px;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <h2>DSSG {{ program_year }} Application Reviews</h2>
+
+    <p>
+        {% include "review/includes/submission-count-message.html" with count=review_count only %}
+    </p>
+
+    <p>
+        <a href="{% url 'review-application' %}">
+            {% if review_count == 0 %}
+            Submit a Review
+            {% else %}
+            Review Another
+            {% endif %}
+        </a>
+    </p>
+
+    <h3>Look up an application</h3>
+    <form id="look-up" class="short-width">
+        <input type="text"><input type="submit" value="search">
+        <ul id="look-up-results" class="basic striped">
+        </ul>
+    </form>
+
+    {% if reviews %}
+    <h3>Your submitted application reviews</h3>
+
+    <dl id="app-reviews" class="formatted grad3 striped long-key valued short-width">
+        {% for review in reviews %}
+        <dt>{{ review.application.applicant }}</dt>
+        <dd>{{ review.overall_recommendation }}</dd>
+        <dd>
+            <a href="{% url 'review-application' review.application.pk %}" class="em-svg em-memo"></a>
+        </dd>
+        {% endfor %}
+    </dl>
+    {% endif %}
+
+    <script type="text/javascript">
+        (function (window) {
+            'use strict';
+
+            var form = window.document.getElementById('look-up'),
+                textInput = form.querySelector('input[type=text]'),
+                resultsList = window.document.getElementById('look-up-results'),
+                loadingItem = window.document.createElement('li'),
+                emptyItem = window.document.createElement('li');
+
+            loadingItem.innerText = 'loading \u2026';
+            emptyItem.innerText = 'no results';
+
+            function clearResults () {
+                var child;
+                while (child = resultsList.firstChild) {
+                    resultsList.removeChild(child);
+                }
+            }
+
+            function handleResponse (response) {
+                if (response.ok) return response.json();
+                throw new Error("Bad response");
+            }
+
+            function handlePayload (payload) {
+                clearResults();
+                if (payload.results.length === 0) {
+                    resultsList.appendChild(emptyItem);
+                } else {
+                    payload.results.forEach(handleResult);
+                }
+            }
+
+            function handleResult (result) {
+                var listItem = window.document.createElement('li'),
+                    innerList = window.document.createElement('ul'),
+                    labelItem = window.document.createElement('li'),
+                    anchorItem = window.document.createElement('li'),
+                    anchor = window.document.createElement('a');
+
+                innerList.className = 'horizontal clear';
+
+                labelItem.innerText = result.applicant__email;
+
+                anchor.href = "{% url 'review-application' %}" + result.application_id + "/";
+                anchor.className = "em-svg em-memo";
+                anchorItem.appendChild(anchor);
+                anchorItem.className = 'pull-right';
+
+                innerList.appendChild(labelItem);
+                innerList.appendChild(anchorItem);
+                listItem.appendChild(innerList);
+                resultsList.appendChild(listItem);
+            }
+
+            form.addEventListener('submit', function(evt) {
+                var url,
+                    queryTerm = textInput.value;
+
+                evt.preventDefault();
+
+                if (queryTerm) {
+                    clearResults();
+                    resultsList.appendChild(loadingItem);
+
+                    url = '/application.json?q=' + queryTerm;
+
+                    fetch(url, {
+                        credentials: 'same-origin'
+                    }).then(handleResponse).then(handlePayload);
+                }
+            });
+        })(window);
+    </script>
+{% endblock %}

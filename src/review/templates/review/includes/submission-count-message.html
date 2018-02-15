@@ -1,0 +1,5 @@
+{% if count == 0 %}
+You haven't submitted any reviews for this year <i class="em-svg em-confused"></i>
+{% else %}
+    {% include "review/includes/submission-count.html" with count=count only %}
+{% endif %}

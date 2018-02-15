@@ -98,6 +98,9 @@
             .medium-width {
                 max-width: 800px;
             }
+            .short-width {
+                max-width: 450px;
+            }
 
             dl.formatted {
                 display: flex;
@@ -121,6 +124,13 @@
                 padding: 1%;
             }
 
+            dl.formatted.long-key dt {
+                flex: 0 0 68%;
+            }
+            dl.formatted.long-key dd {
+                flex: 0 0 28%;
+            }
+
             dl.grad3 dt {
                 flex: 0 0 4%;
             }
@@ -131,16 +141,41 @@
                 flex: 0 0 16%;
             }
 
-            dl.striped dt:nth-child(4n+1),
-            dl.striped dd:nth-child(4n+2) {
+            dl.grad3.long-key dt {
+                flex: 0 0 68%;
+            }
+            dl.grad3.long-key dd {
+                flex: 0 0 6%;
+            }
+            dl.grad3.long-key dd:nth-of-type(2n-1) {
+                flex: 0 0 20%;
+            }
+
+            dl.striped.grad2 dt:nth-child(4n+1),
+            dl.striped.grad2 dd:nth-child(4n+2) {
                 background-color: #eaeaea;
             }
             dl.striped dt {
                 font-weight: bold;
             }
+            dl.striped.valued dt {
+                font-weight: normal;
+            }
+            dl.striped.valued dd {
+                font-weight: bold;
+            }
+            dl.striped.grad3 dt:nth-child(6n+1),
+            dl.striped.grad3 dd:nth-child(6n+2),
+            dl.striped.grad3 dd:nth-child(6n+3) {
+                background-color: #eaeaea;
+            }
 
             .fadeout-1-10 {
                 animation: fadeout 1s linear 10s 1 normal forwards;
+            }
+
+            ul.striped > li:nth-child(even) {
+                background-color: #eaeaea;
             }
 
             @keyframes fadeout {

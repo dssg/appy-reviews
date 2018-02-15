@@ -3,7 +3,7 @@
 {% with fieldspec|lookup:surveyentry.table_name as fields %}
 <h3>{% render fields.0|default:surveyentry.table_name %}</h3>
 
-<dl class="formatted serif striped">
+<dl class="formatted serif striped grad2">
 {% if fields %}
 {% for field_name, composition in fields.1 %}
     <dt>{{ field_name }}</dt>

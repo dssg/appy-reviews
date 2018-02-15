@@ -27,9 +27,12 @@ class UnexpectedReviewer(LookupError):
 
 
 def apps_to_review(reviewer, *, application_id=None, limit=None,
-                   include_reviewed=False):
-    """Construct an ordered RawQuerySet of Applications available to
-    the Reviewer to review.
+                   include_reviewed=False, ordered=True):
+    """Construct a query set of Applications available to the Reviewer
+    to review.
+
+    By default, an ordered RawQuerySet is returned. Set `ordered=False`
+    to construct a typical QuerySet without special ordering.
 
     """
     # Test that reviewer can help with application reviews
@@ -69,33 +72,37 @@ def apps_to_review(reviewer, *, application_id=None, limit=None,
             assert result
 
     # Return stream of applications appropriate to reviewer,
-    # ordered by appropriateness
-    #
-    # This is the QuerySet we want, using Django's ORM:
-    #
-    # return models.Application.objects.annotate(
-    #     # extend query with these for filtering/ordering
-    #     page_count=Count('applicationpage', distinct=True),
-    #     review_count=Count('review', distinct=True),
-    # ).filter(
-    #     # only consider applications ...
-    #     # ... for this program year
-    #     program_year=settings.REVIEW_PROGRAM_YEAR,
-    #     # ... which the applicant completed
-    #     page_count=settings.REVIEW_SURVEY_LENGTH,
-    #     # ... which we haven't culled
-    #     review_decision=True,
-    # ).exclude(
-    #     # exclude applications which this reviewer has already reviewed
-    #     review__reviewer=reviewer,
-    # ).order_by(
-    #     # prioritize applications by their lack of reviews
-    #     'review_count',
-    #     # ... otherwise *randomize* applications to ensure simultaneous
-    #     # reviewers do not review the same application
-    #     '?',
-    # )
-    #
+    # optionally ordered by appropriateness
+
+    if not ordered:
+        # This is the QuerySet we want, using Django's ORM:
+        applications = models.Application.objects.annotate(
+            # extend query with these for filtering/ordering
+            page_count=Count('applicationpage', distinct=True),
+        ).filter(
+            # only consider applications ...
+            # ... for this program year
+            program_year=settings.REVIEW_PROGRAM_YEAR,
+            # ... which the applicant completed
+            page_count=settings.REVIEW_SURVEY_LENGTH,
+            # ... which we haven't culled
+            review_decision=True,
+        )
+
+        if application_id:
+            applications = applications.filter(application_id=application_id)
+
+        if not include_reviewed:
+            applications = applications.exclude(
+                # exclude applications which this reviewer has already reviewed
+                review__reviewer=reviewer,
+            )
+
+        if limit is not None:
+            applications = applications[:limit]
+
+        return applications
+
     # However, it's an ORM ...
     # ... and it has at least this bug:
     #   https://code.djangoproject.com/ticket/26390

@@ -287,6 +287,7 @@ class Application(models.Model):
 
     class Meta:
         db_table = 'application'
+        ordering = ('-created',)
 
     def __str__(self):
         return f'{self.applicant} ({self.program_year})'

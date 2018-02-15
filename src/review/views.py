@@ -9,7 +9,7 @@ from django import forms, http
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.db import connection, transaction
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -105,6 +105,63 @@ def index(request):
         'reviews': reviews,
         'review_count': review_count,
         'program_year': settings.REVIEW_PROGRAM_YEAR,
+    })
+
+
+@require_GET
+@login_required
+def list_applications(request, content_type='html'):
+    if content_type != 'json':
+        raise NotImplementedError
+
+    query_raw = request.GET.get('q', '')
+    applications = query.apps_to_review(request.user,
+                                        include_reviewed=True,
+                                        ordered=False)
+
+    if query_raw:
+        with connection.cursor() as cursor:
+            cursor.execute('''\
+                SELECT "EntryId"
+                FROM "survey_application_1_2018"
+                WHERE
+                    LOWER("Field451") IN %(query_terms)s OR
+                    LOWER("Field452") IN %(query_terms)s OR
+                    LOWER("Field461") IN %(query_terms)s
+                ''',
+                {'query_terms': tuple(query_raw.lower().split())}
+            )
+            entry_ids = [row[0] for row in cursor]
+
+        applications = applications.filter(
+            applicationpage__table_name='survey_application_1_2018',
+            applicationpage__column_name='EntryId',
+            applicationpage__entity_code__in=entry_ids,
+        )
+    elif not request.user.trusted:
+        return http.JsonResponse(
+            {
+                'status': 'forbidden',
+                'error': 'not allowed',
+            },
+            status=403,
+        )
+
+    return http.JsonResponse({
+        'status': 'ok',
+        'results': list(
+            applications
+            .values(
+                'application_id',
+                'applicant_id',
+                'program_year',
+                'created',
+                'applicant__email',
+            )
+            .order_by(
+                'applicant__email',
+            )
+        ),
     })
 
 

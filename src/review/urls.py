@@ -1,5 +1,4 @@
 from django.urls import path, re_path
-from django.views.generic import RedirectView
 
 from . import views
 
@@ -12,6 +11,9 @@ urlpatterns = [
 
     # path('review/interview/', views.review, name='review-interview'),
     # path('review/interview/...', views.review, name='review-interview-detail'),
+
+    path('application.json', views.list_applications, {'content_type': 'json'}, name='application-list'),
+    # path('application/', views.list_applications, name='application-list'),
 
     re_path(r"confirm-email/(?P<key>[-:\w]+)/$",
             views.invite_confirm_email,

@@ -1,6 +1,7 @@
 import enum
 import re
 
+from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth import models as auth_models
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
@@ -245,6 +246,9 @@ class Applicant(models.Model):
     class Meta:
         db_table = 'applicant'
 
+    def __str__(self):
+        return self.email
+
 
 #
 # Application
@@ -284,6 +288,8 @@ class Application(models.Model):
     class Meta:
         db_table = 'application'
 
+    def __str__(self):
+        return f'{self.applicant} ({self.program_year})'
 
 #
 # SurveyEntries
@@ -383,6 +389,14 @@ class AbstractRating(models.Model):
         return [field.name for field in AbstractRating._meta.fields]
 
 
+class ReviewQuerySet(models.QuerySet):
+
+    def current_year(self):
+        return self.filter(
+            application__program_year=settings.REVIEW_PROGRAM_YEAR,
+        )
+
+
 class Review(AbstractRating):
 
     class OverallRecommendation(StrEnum):
@@ -419,8 +433,15 @@ class Review(AbstractRating):
         help_text="If this applicant moves to the interview round, would you like to interview them?",
     )
 
+    objects = ReviewQuerySet.as_manager()
+
     class Meta:
         db_table = 'review'
+        ordering = ('-submitted',)
         unique_together = (
             ('application', 'reviewer'),
         )
+
+    def __str__(self):
+        return (f'{self.reviewer} regarding {self.application}: '
+                f'{self.overall_recommendation}')

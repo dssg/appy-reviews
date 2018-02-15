@@ -1,0 +1,37 @@
+{% extends "review/site.html" %}
+
+{% block title %}
+DSSG {{ program_year }} Application Reviews
+{% endblock %}
+
+{% block body %}
+    <h2>DSSG {{ program_year }} Application Reviews</h2>
+
+    <p>
+        {% include "review/includes/submission-count-message.html" with count=review_count only %}
+    </p>
+
+    <p>
+        <a href="{% url 'review-application' %}">
+            {% if review_count == 0 %}
+            Submit a Review
+            {% else %}
+            Review Another
+            {% endif %}
+        </a>
+    </p>
+
+    {% if reviews %}
+    <h3>Your submitted application reviews</h3>
+
+    <dl id="app-reviews" class="formatted grad3 striped long-key valued short-width">
+        {% for review in reviews %}
+        <dt>{{ review.application.applicant }}</dt>
+        <dd>{{ review.overall_recommendation }}</dd>
+        <dd>
+            <a href="{% url 'review-application' review.application.pk %}" class="em-svg em-memo"></a>
+        </dd>
+        {% endfor %}
+    </dl>
+    {% endif %}
+{% endblock %}

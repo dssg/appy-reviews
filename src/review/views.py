@@ -13,7 +13,7 @@ from django.db import transaction
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_GET, require_http_methods
 
 from review import models, query
 
@@ -90,6 +90,22 @@ def unexpected_review(handler):
             })
 
     return functools.wraps(handler)(wrapped)
+
+
+@require_GET
+@login_required
+def index(request):
+    reviews = request.user.reviews.current_year()
+    review_count = len(reviews)  # let's get them
+
+    if review_count == 0:
+        return redirect('review-application')
+
+    return TemplateResponse(request, 'review/index.html', {
+        'reviews': reviews,
+        'review_count': review_count,
+        'program_year': settings.REVIEW_PROGRAM_YEAR,
+    })
 
 
 @require_http_methods(['GET', 'POST'])

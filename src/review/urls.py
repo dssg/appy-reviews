@@ -5,13 +5,13 @@ from . import views
 
 
 urlpatterns = [
+    path('', views.index, name='index'),
+
     path('review/application/', views.review, name='review-application'),
-    path('review/application/<int:application_id>/', views.review, name='review-application-detail'),
+    path('review/application/<int:application_id>/', views.review, name='review-application'),
+
     # path('review/interview/', views.review, name='review-interview'),
     # path('review/interview/...', views.review, name='review-interview-detail'),
-
-    # TODO: do something with index? (dashboard?)
-    path('', RedirectView.as_view(pattern_name='review-application', permanent=False)),
 
     re_path(r"confirm-email/(?P<key>[-:\w]+)/$",
             views.invite_confirm_email,

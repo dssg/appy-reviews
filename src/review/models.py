@@ -19,9 +19,18 @@ class StrEnum(str, enum.Enum):
         return self.value
 
 
-class EnumCharField(fields.CharField):
+class IntEnum(int, enum.Enum):
 
-    def __init__(self, enum, **kws):
+    def __str__(self):
+        return str(self.value)
+
+
+class EnumFieldMixin(object):
+
+    member_cast = str
+
+    @classmethod
+    def prepare_init_kwargs(cls, enum, kws):
         if 'choices' in kws:
             raise TypeError("Unexpected keyword argument 'choices'")
 
@@ -30,12 +39,32 @@ class EnumCharField(fields.CharField):
         except AttributeError:
             choices = enum
 
-        kws.setdefault(
+        return dict(kws, choices=choices)
+
+    def __init__(self, enum, **kws):
+        super().__init__(**self.prepare_init_kwargs(enum, kws))
+
+    def deconstruct(self):
+        """Return a suitable description of this field for migrations.
+
+        """
+        (name, path, args, kwargs) = super().deconstruct()
+        choices = [(key, self.member_cast(member))
+                   for (key, member) in kwargs.pop('choices')]
+        return (name, path, [choices] + args, kwargs)
+
+
+class EnumCharField(EnumFieldMixin, fields.CharField):
+
+    @classmethod
+    def prepare_init_kwargs(cls, enum, kws):
+        prepared = super().prepare_init_kwargs(enum, kws)
+        choices = prepared['choices']
+        prepared.setdefault(
             'max_length',
             max((len(name) for (name, _value) in choices), default=0)
         )
-
-        super().__init__(choices=choices, **kws)
+        return prepared
 
     def deconstruct(self):
         """Return a suitable description of this field for migrations.
@@ -44,11 +73,12 @@ class EnumCharField(fields.CharField):
         (name, path, args, kwargs) = super().deconstruct()
 
         del kwargs['max_length']
-        choices = [
-            (key, str(member)) for (key, member) in kwargs.pop('choices')
-        ]
 
-        return (name, path, [choices] + args, kwargs)
+        return (name, path, args, kwargs)
+
+
+class EnumIntegerField(EnumFieldMixin, fields.IntegerField):
+    pass
 
 
 #
@@ -416,7 +446,7 @@ class ApplicationReview(AbstractRating):
     application = models.ForeignKey('review.Application',
                                     on_delete=models.CASCADE,
                                     related_name='application_reviews')
-    submitted = models.DateTimeField(auto_now_add=True)
+    submitted = models.DateTimeField(auto_now_add=True, db_index=True)
 
     overall_recommendation = EnumCharField(
         OverallRecommendation,
@@ -450,3 +480,29 @@ class ApplicationReview(AbstractRating):
     def __str__(self):
         return (f'{self.reviewer} regarding {self.application}: '
                 f'{self.overall_recommendation}')
+
+
+class InterviewAssignment(models.Model):
+
+    class InterviewRound(IntEnum):
+
+        round_one = 1
+        round_two = 2
+
+    interview_assignment_id = models.AutoField(primary_key=True)
+    application = models.ForeignKey('review.Application',
+                                    on_delete=models.CASCADE,
+                                    related_name='interview_assignments')
+    reviewer = models.ForeignKey('review.Reviewer',
+                                 on_delete=models.CASCADE,
+                                 related_name='interview_assignments')
+    interview_round = EnumIntegerField(InterviewRound)  # FIXME: key/value backwards in choices?
+    assigned = models.DateTimeField(auto_now_add=True, db_index=True)
+    notified = models.DateTimeField(null=True, db_index=True)
+
+    class Meta:
+        db_table = 'interview_assignment'
+        ordering = ('-assigned',)
+        unique_together = (
+            ('application', 'reviewer', 'interview_round'),
+        )

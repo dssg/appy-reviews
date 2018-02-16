@@ -9,14 +9,22 @@ DSSG {{ program_year }} Application Reviews
         .clear {
             clear: both;
         }
+        #look-up fieldset {
+            border: dotted #c7c7c7 1px;
+            padding: 2px;
+            margin: 0;
+        }
+        #look-up input {
+            border: 0;
+            outline: none;
+        }
         #look-up input[type=text] {
-            width: 450px;
-            box-sizing: border-box;
+            width: 380px;
+            float: left;
         }
         #look-up input[type=submit] {
             width: 50px;
-            margin-left: -52px;
-            border: 0;
+            float: right;
         }
         #look-up-results {
             margin-top: 0.5em;
@@ -50,7 +58,10 @@ DSSG {{ program_year }} Application Reviews
 
     <h3>Look up an application</h3>
     <form id="look-up" class="short-width">
-        <input type="text"><input type="submit" value="search">
+        <fieldset>
+            <input type="text" placeholder="enter applicant name or email">
+            <input type="submit" value="search">
+        </fieldset>
         <ul id="look-up-results" class="basic striped">
         </ul>
     </form>

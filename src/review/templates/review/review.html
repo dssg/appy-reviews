@@ -2,7 +2,7 @@
 {% load review %}
 
 {% block title %}
-Review a DSSG {{ application.program_year }} Fellow {{ review_type|capfirst }}
+{% include "review/includes/review-title.html" %}
 {% endblock %}
 
 {% block head %}
@@ -142,7 +142,7 @@ Review a DSSG {{ application.program_year }} Fellow {{ review_type|capfirst }}
 {% endblock %}
 
 {% block body %}
-    <h1>Review a DSSG {{ application.program_year }} Fellow {{ review_type|capfirst }}</h1>
+    <h1>{% include "review/includes/review-title.html" %}</h1>
 
     {% if review_type == 'application' %}
     <p>
@@ -162,7 +162,7 @@ Review a DSSG {{ application.program_year }} Fellow {{ review_type|capfirst }}
     {% endif %}
 
     <p>
-        Based on your {% if review_type == 'interview' %}applicant interview{% else %}review{% endif %},
+        Based on your {% if review_type == 'interview' %}candidate interview{% else %}review{% endif %},
         complete the <a href="#section-review">{% if review_type == 'interview' %}interview {% endif %}review form</a>.
 
         {% if user.trusted %}

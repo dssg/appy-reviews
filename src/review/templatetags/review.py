@@ -15,8 +15,15 @@ def repeat(value, count, join=''):
 
 
 @register.filter
-def lookup(hash_, key):
-    return hash_.get(key) if hash_ else None
+def lookup(obj, key):
+    if not obj:
+        return None
+
+    getter = getattr(obj, 'get', None)
+    if callable(getter):
+        return getter(key)
+
+    return getattr(obj, key, None)
 
 
 @register.filter

@@ -10,7 +10,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import connection, transaction
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
@@ -18,7 +18,8 @@ from django.views.decorators.http import require_GET, require_http_methods
 from review import models, query
 
 
-RATING_FIELDS = tuple(models.ApplicationReview.rating_fields())
+RATING_FIELDS = models.ApplicationReview.rating_fields()
+RATING_NAMES = tuple(RATING_FIELDS)
 
 
 class RatingWidget(forms.RadioSelect):
@@ -39,19 +40,29 @@ class ReviewForm(forms.ModelForm):
 
     # ensure empty option isn't provided
     # (ModelForm insists on inserting it)
-    overall_recommendation = forms.ChoiceField(
-        widget=forms.RadioSelect,
-        choices=[
+    overall_recommendation = forms.ChoiceField(widget=forms.RadioSelect)
+
+    def __init__(self, *args, reviewer, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.reviewer = reviewer
+
+        if self.reviewer.trusted:
+            for field_name in RATING_NAMES:
+                self.fields[field_name].required = False
+
+        self.fields['overall_recommendation'].choices = [
             (name, str(label)) for (name, label)
-            in models.ApplicationReview.OverallRecommendation.__members__.items()
-        ],
-    )
+            in self._meta.model.OverallRecommendation.__members__.items()
+        ]
+
+
+class ApplicationReviewForm(ReviewForm):
 
     class Meta:
         model = models.ApplicationReview
         fields = (
             'application',
-        ) + RATING_FIELDS + (
+        ) + RATING_NAMES + (
             'overall_recommendation',
             'comments',
             'interview_suggestions',
@@ -60,24 +71,27 @@ class ReviewForm(forms.ModelForm):
         widgets = dict(
             (
                 (rating_field, RatingWidget)
-                for rating_field in RATING_FIELDS
+                for rating_field in RATING_NAMES
             ),
             application=forms.HiddenInput,
         )
-
-    def __init__(self, *args, reviewer, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.reviewer = reviewer
-
-        if self.reviewer.trusted:
-            for field_name in RATING_FIELDS:
-                self.fields[field_name].required = False
 
     def full_clean(self):
         super().full_clean()
 
         if not self.errors:
             self.instance.reviewer = self.reviewer
+
+
+class InterviewReviewForm(ReviewForm):
+
+    class Meta:
+        model = models.InterviewReview
+        fields = RATING_NAMES + (
+            'overall_recommendation',
+            'comments',
+        )
+        widgets = {rating_field: RatingWidget for rating_field in RATING_NAMES}
 
 
 def unexpected_review(handler):
@@ -95,15 +109,13 @@ def unexpected_review(handler):
 @require_GET
 @login_required
 def index(request):
-    reviews = request.user.reviews.current_year()
-    review_count = len(reviews)  # let's get them
-
-    if review_count == 0:
-        return redirect('review-application')
+    reviews = request.user.application_reviews.current_year()
+    interviews = request.user.interview_assignments.current_year()
 
     return TemplateResponse(request, 'review/index.html', {
+        'interviews': interviews,
         'reviews': reviews,
-        'review_count': review_count,
+        'review_count': len(reviews),  # let's get them!
         'program_year': settings.REVIEW_PROGRAM_YEAR,
     })
 
@@ -168,7 +180,7 @@ def list_applications(request, content_type='html'):
 @require_http_methods(['GET', 'POST'])
 @login_required
 @unexpected_review
-def review(request, application_id=None):
+def review_application(request, application_id=None):
     if application_id:
         applications = query.apps_to_review(request.user,
                                             application_id=application_id,
@@ -204,9 +216,9 @@ def review(request, application_id=None):
         elif request.POST.get('application') != str(application_id):
             return http.HttpResponseBadRequest("Bad request")
 
-        review_form = ReviewForm(data=request.POST,
-                                 instance=review,
-                                 reviewer=request.user)
+        review_form = ApplicationReviewForm(data=request.POST,
+                                            instance=review,
+                                            reviewer=request.user)
         if review_form.is_valid():
             with transaction.atomic():
                 review_form.save()
@@ -225,16 +237,57 @@ def review(request, application_id=None):
                     'review_count': request.user.application_reviews.current_year().count(),
                 })
 
-        review_form = ReviewForm(instance=review,
-                                 initial={'application': application},
-                                 reviewer=request.user)
+        review_form = ApplicationReviewForm(
+            instance=review,
+            initial={'application': application},
+            reviewer=request.user,
+        )
 
     return TemplateResponse(request, 'review/review.html', {
         'application': application,
         'application_fields': settings.REVIEW_APPLICATION_FIELDS,
         'review_form': review_form,
         'review_count': request.user.application_reviews.current_year().count(),
+        'review_type': 'application',
     })
+
+
+@require_http_methods(['GET', 'POST'])
+@login_required
+def review_interview(request, assignment_id):
+    # TODO: GET: list interview reviews if user is trusted?
+    assignment = get_object_or_404(models.InterviewAssignment, pk=assignment_id)
+    if assignment.reviewer != request.user:
+        return http.HttpResponseForbidden("Forbidden")
+
+    try:
+        review = assignment.interview_review
+    except models.InterviewReview.DoesNotExist:
+        review = models.InterviewReview(interview_assignment=assignment)
+
+    if request.method == 'POST':
+        review_form = InterviewReviewForm(data=request.POST,
+                                          instance=review,
+                                          reviewer=request.user)
+        if review_form.is_valid():
+            with transaction.atomic():
+                review_form.save()
+
+            messages.success(request, 'Review submitted')
+            return redirect('index')
+    else:
+        review_form = InterviewReviewForm(instance=review,
+                                          reviewer=request.user)
+
+    return TemplateResponse(request, 'review/review.html', {
+        'application': assignment.application,
+        'application_fields': settings.REVIEW_APPLICATION_FIELDS,
+        'review_form': review_form,
+        'review_type': 'interview',
+        'application_reviews': assignment.application.application_reviews.all(),
+        'rating_fields': RATING_FIELDS,
+    })
+
 
 
 class InvitationalConfirmEmailView(allauth.account.views.ConfirmEmailView):

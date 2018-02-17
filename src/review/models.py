@@ -1,3 +1,4 @@
+import collections
 import enum
 import re
 
@@ -17,6 +18,12 @@ class StrEnum(str, enum.Enum):
 
     def __str__(self):
         return self.value
+
+
+class SafeStrEnum(StrEnum):
+
+    def __str__(self):
+        return safestring.mark_safe(self.value)
 
 
 class IntEnum(int, enum.Enum):
@@ -417,10 +424,13 @@ class AbstractRating(models.Model):
     def rating_fields():
         # Note: not appropriate to refer to `cls`, as we only want
         # AbstractRating's fields
-        return [field.name for field in AbstractRating._meta.fields]
+        return collections.OrderedDict(
+            (field.name, field.verbose_name)
+            for field in AbstractRating._meta.fields
+        )
 
 
-class ReviewQuerySet(models.QuerySet):
+class ApplicationLinkedQuerySet(models.QuerySet):
 
     def current_year(self):
         return self.filter(
@@ -430,14 +440,11 @@ class ReviewQuerySet(models.QuerySet):
 
 class ApplicationReview(AbstractRating):
 
-    class OverallRecommendation(StrEnum):
+    class OverallRecommendation(SafeStrEnum):
 
         interview = "Interview"
         reject = "Reject"
         only_if = "Interview <em>only</em> if you need a certain type of fellow (explain below)"
-
-        def __str__(self):
-            return safestring.mark_safe(self.value)
 
     review_id = models.AutoField(primary_key=True)
     reviewer = models.ForeignKey('review.Reviewer',
@@ -467,7 +474,7 @@ class ApplicationReview(AbstractRating):
                   "you like to interview them?",
     )
 
-    objects = ReviewQuerySet.as_manager()
+    objects = ApplicationLinkedQuerySet.as_manager()
 
     class Meta:
         # TODO: migrate db table to "application_review"
@@ -480,6 +487,35 @@ class ApplicationReview(AbstractRating):
     def __str__(self):
         return (f'{self.reviewer} regarding {self.application}: '
                 f'{self.overall_recommendation}')
+
+
+class InterviewReview(AbstractRating):
+
+    class OverallRecommendation(SafeStrEnum):
+
+        accept = "Accept"
+        reject = "Reject"
+        only_if = "Accept <em>only</em> if you need a certain type of fellow (explain below)"
+
+    interview_assignment = models.OneToOneField('review.InterviewAssignment',
+                                                primary_key=True,
+                                                on_delete=models.CASCADE,
+                                                related_name='interview_review')
+
+    overall_recommendation = EnumCharField(
+        OverallRecommendation,
+        help_text="Overall recommendation",
+    )
+    comments = models.TextField(
+        blank=True,
+        help_text="Any comments?",
+    )
+
+    submitted = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = 'interview_review'
+        ordering = ('-submitted',)
 
 
 class InterviewAssignment(models.Model):
@@ -499,6 +535,8 @@ class InterviewAssignment(models.Model):
     interview_round = EnumIntegerField(InterviewRound)  # FIXME: key/value backwards in choices?
     assigned = models.DateTimeField(auto_now_add=True, db_index=True)
     notified = models.DateTimeField(null=True, db_index=True)
+
+    objects = ApplicationLinkedQuerySet.as_manager()
 
     class Meta:
         db_table = 'interview_assignment'

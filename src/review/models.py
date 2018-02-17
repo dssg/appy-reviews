@@ -226,6 +226,13 @@ class Reviewer(AbstractBaseUser, PermissionsMixin):
                   'active. Unselect this instead of deleting accounts.'
     )
     date_joined = models.DateTimeField(default=timezone.now)
+    # FIXME: In 2018, we used background to describe interviewers' experience
+    # FIXME: with / connection to DSSG, (included in interview email).
+    # FIXME: If we intend to use this field to describe the reviewer's
+    # FIXME: background at all, (and e.g. to match reviewers with applications),
+    # FIXME: then we should provision a new field and migrate
+    # FIXME: currently-populated background values to it, e.g.:
+    # FIXME: program_experience = CharField(max_length=250, blank=True)
     background = models.CharField(max_length=100, blank=True, choices=(
         ('soc-sci', 'Social Science'),
         ('comp-sci', 'Computer Science'),

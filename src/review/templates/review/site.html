@@ -15,6 +15,13 @@
 
             /* section general */
 
+            .text-left {
+                text-align: left;
+            }
+            .text-center {
+                text-align: center;
+            }
+
             .hint-size {
                 font-size: 15px;
             }
@@ -99,7 +106,7 @@
                 max-width: 800px;
             }
             .short-width {
-                max-width: 450px;
+                max-width: 600px;
             }
 
             dl.formatted {
@@ -142,13 +149,15 @@
             }
 
             dl.grad3.long-key dt {
-                flex: 0 0 68%;
+                flex: 0 0 55%;
             }
             dl.grad3.long-key dd {
-                flex: 0 0 6%;
+                flex: 0 0 9%;
+                text-align: right;
             }
             dl.grad3.long-key dd:nth-of-type(2n-1) {
-                flex: 0 0 20%;
+                flex: 0 0 30%;
+                text-align: initial;
             }
 
             dl.striped.grad2 dt:nth-child(4n+1),
@@ -170,12 +179,31 @@
                 background-color: #eaeaea;
             }
 
+            dl.header dt, dl.header dd {
+                font-weight: normal;
+            }
+            dl.header dt:first-child,
+            dl.header dd:first-of-type,
+            dl.header dd:nth-of-type(2) {
+                font-weight: bold;
+            }
+
             .fadeout-1-10 {
                 animation: fadeout 1s linear 10s 1 normal forwards;
             }
 
             ul.striped > li:nth-child(even) {
                 background-color: #eaeaea;
+            }
+
+            table.striped tr:nth-of-type(even) {
+                background-color: #eaeaea;
+            }
+            table.striped tr:nth-of-type(odd) {
+                background-color: white;
+            }
+            table.striped th {
+                background-color: #cdcdcd;
             }
 
             @keyframes fadeout {

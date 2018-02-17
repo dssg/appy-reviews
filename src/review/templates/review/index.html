@@ -19,7 +19,7 @@ DSSG {{ program_year }} Application Reviews
             outline: none;
         }
         #look-up input[type=text] {
-            width: 380px;
+            width: 530px;
             float: left;
         }
         #look-up input[type=submit] {
@@ -49,12 +49,29 @@ DSSG {{ program_year }} Application Reviews
     <p>
         <a href="{% url 'review-application' %}">
             {% if review_count == 0 %}
-            Submit a Review
+            Submit an application review
             {% else %}
-            Review Another
+            Review another application
             {% endif %}
         </a>
     </p>
+
+    {% if interviews %}
+    <h3>Your applicant interviews</h3>
+
+    <dl id="interviews" class="formatted grad3 striped long-key short-width header">
+        <dt>Applicant</dt>
+        <dd>Recommendation</dd>
+        <dd></dd>
+        {% for interview in interviews %}
+        <dt>{{ interview.application.applicant }}</dt>
+        <dd>{{ interview.interview_review.overall_recommendation|default:'–' }}</dd>
+        <dd>
+            <a href="{% url 'review-interview' interview.pk %}" class="em-svg em-memo"></a>
+        </dd>
+        {% endfor %}
+    </dl>
+    {% endif %}
 
     <h3>Look up an application</h3>
     <form id="look-up" class="short-width">
@@ -69,7 +86,10 @@ DSSG {{ program_year }} Application Reviews
     {% if reviews %}
     <h3>Your submitted application reviews</h3>
 
-    <dl id="app-reviews" class="formatted grad3 striped long-key valued short-width">
+    <dl id="app-reviews" class="formatted grad3 striped long-key short-width header">
+        <dt>Applicant</dt>
+        <dd>Recommendation</dd>
+        <dd></dd>
         {% for review in reviews %}
         <dt>{{ review.application.applicant }}</dt>
         <dd>{{ review.overall_recommendation }}</dd>

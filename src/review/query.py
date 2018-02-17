@@ -141,15 +141,15 @@ def apps_to_review(reviewer, *, application_id=None, limit=None,
             LEFT OUTER JOIN "review" USING ("application_id")
             LEFT OUTER JOIN "review" "positive_review" ON (
                 "application"."application_id" = "positive_review"."application_id" AND
-                "positive_review"."overall_recommendation" = '{models.Review.OverallRecommendation.interview.name}'
+                "positive_review"."overall_recommendation" = '{models.ApplicationReview.OverallRecommendation.interview.name}'
             )
             LEFT OUTER JOIN "review" "unknown_review" ON (
                 "application"."application_id" = "unknown_review"."application_id" AND
-                "unknown_review"."overall_recommendation" = '{models.Review.OverallRecommendation.only_if.name}'
+                "unknown_review"."overall_recommendation" = '{models.ApplicationReview.OverallRecommendation.only_if.name}'
             )
             LEFT OUTER JOIN "review" "negative_review" ON (
                 "application"."application_id" = "negative_review"."application_id" AND
-                "negative_review"."overall_recommendation" = '{models.Review.OverallRecommendation.reject.name}'
+                "negative_review"."overall_recommendation" = '{models.ApplicationReview.OverallRecommendation.reject.name}'
             )
 
             -- only consider applications ...

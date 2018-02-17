@@ -1,11 +1,29 @@
 {% extends "review/site.html" %}
+{% load review %}
 
 {% block title %}
-Review a DSSG {{ application.program_year }} Fellow Application
+Review a DSSG {{ application.program_year }} Fellow {{ review_type|capfirst }}
 {% endblock %}
 
 {% block head %}
     <style>
+        #application-reviews {
+            background-color: #c0c0c0;
+            border-spacing: 1px;
+        }
+        #application-reviews caption {
+            margin-bottom: 0.75em;
+        }
+        #application-reviews caption h4 {
+            margin: 0 0 0.25em 0;
+        }
+        #application-reviews td {
+            height: 50px;
+        }
+        #application-reviews td, #application-reviews th {
+            padding: 0.4em;
+        }
+
         /* section review */
 
         #review {
@@ -127,36 +145,52 @@ Review a DSSG {{ application.program_year }} Fellow Application
 {% endblock %}
 
 {% block body %}
-    <h1>Review a DSSG {{ application.program_year }} Fellow Application</h1>
+    <h1>Review a DSSG {{ application.program_year }} Fellow {{ review_type|capfirst }}</h1>
 
+    {% if review_type == 'application' %}
     <p>
         {% include "review/includes/submission-count-message.html" with count=review_count only %}
     </p>
+    {% endif %}
 
     {# TODO: "to the top" link #}
 
     <h2>How to review</h2>
+
+    {% if review_type == 'application' %}
     <p>
-        Review the <a href="#section-application">Application</a> below, which consists
-        of the applicant's submissions and as many as two <a href="#section-references">References</a>.
+        Review the <a href="#section-application">application</a> below, which consists
+        of the applicant's submissions and as many as two <a href="#section-references">references</a>.
     </p>
+    {% endif %}
+
     <p>
-        Based on your review, complete the <a href="#section-review">Review form</a>.
+        Based on your {% if review_type == 'interview' %}applicant interview{% else %}review{% endif %},
+        complete the <a href="#section-review">{% if review_type == 'interview' %}interview {% endif %}review form</a>.
+
         {% if user.trusted %}
         You're a <strong>trusted</strong> reviewer; so, only the overall recommendation is required.
         {% else %}
         All parts of the review, except open text fields, are required.
         {% endif %}
     </p>
+
+    {% if review_type == 'application' %}
     <p>Keep in mind that 20% of applicants will move to the interview round.</p>
+    {% endif %}
 
     <h4>Ratings</h4>
     <dl class="formatted grad3 medium-width">
         <dt><i class="em-svg em-question"></i></dt>
         <dd><strong>Cannot Determine</strong></dd>
         <dd>
-            Select this option only if you are unable to determine from the
-            application the applicant's aptitude with the given subject. We will use this to focus the interview questions for the applicant.
+            Select this option only if you are unable to determine
+            {% if review_type == 'application' %}from the application{% endif %}
+            the applicant's aptitude with the given subject.
+
+            {% if review_type == 'application' %}
+            We will use this to focus the interview questions for the applicant.
+            {% endif %}
         </dd>
 
         <dt><i class="em-svg em--1"></i></dt>
@@ -171,6 +205,55 @@ Review a DSSG {{ application.program_year }} Fellow Application
         <dd><strong>Exceptional</strong></dd>
         <dd>Significantly exceeds the threshold for the skill.</dd>
     </dl>
+
+    {% if review_type == 'interview' and application_reviews %}
+    <h2>Application reviews</h2>
+    <table id="application-reviews" class="striped text-center">
+        <caption>
+            <h4>Your peers' reviews of this application</h4>
+            (Hover over comments for full text.)
+        </caption>
+        <tr>
+            <th rowspan="2">Reviewer</th>
+            <th colspan="{{ rating_fields|length }}">Ratings</th>
+            <th rowspan="2">Recommendation</th>
+            <th rowspan="2">Comments</th>
+            <th rowspan="2">Suggestions</th>
+        </tr>
+        <tr>
+            {% for rating_verbose in rating_fields.values %}
+            <th>{{ rating_verbose }}</th>
+            {% endfor %}
+        </tr>
+        {% for review in application_reviews %}
+        <tr>
+            <td class="text-left">{{ review.reviewer }}</td>
+            {% for rating_name in rating_fields %}
+            <td>
+            {% with review|lookup:rating_name as rating_value %}
+            {% if rating_value == -1 %}
+                <i title="Inadequate" class="em-svg em--1"></i>
+            {% elif rating_value == 0 %}
+                <i title="Indeterminate" class="em-svg em-question">
+            {% elif rating_value == 1 %}
+                <i title="Adequate" class="em-svg em---1"></i>
+            {% elif rating_value == 2 %}
+                <i title="Exceptional" class="em-svg em-raised_hands"></i>
+            {% endif %}
+            {% endwith %}
+            </td>
+            {% endfor %}
+            <td>{{ review.overall_recommendation }}</td>
+            <td class="text-left" title="{{ review.comments }}">
+                {{ review.comments|truncatechars:120 }}
+            </td>
+            <td class="text-left" title="{{ review.interview_suggestions }}">
+                {{ review.interview_suggestions|truncatechars:120 }}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
 
     <div class="column-container">
     <section id="section-review" class="column-rail-left sidebar-scroll sticky">

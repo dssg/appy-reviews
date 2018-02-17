@@ -11,11 +11,8 @@ Review a DSSG {{ application.program_year }} Fellow {{ review_type|capfirst }}
             background-color: #c0c0c0;
             border-spacing: 1px;
         }
-        #application-reviews caption {
-            margin-bottom: 0.75em;
-        }
-        #application-reviews caption h4 {
-            margin: 0 0 0.25em 0;
+        #application-reviews caption h3 {
+            margin: 0.5em 0 1em;
         }
         #application-reviews td {
             height: 50px;
@@ -210,20 +207,20 @@ Review a DSSG {{ application.program_year }} Fellow {{ review_type|capfirst }}
     <h2>Application reviews</h2>
     <table id="application-reviews" class="striped text-center">
         <caption>
-            <h4>Your peers' reviews of this application</h4>
-            (Hover over comments for full text.)
+            <h3>Your peers' reviews of this application</h3>
         </caption>
         <tr>
             <th rowspan="2">Reviewer</th>
             <th colspan="{{ rating_fields|length }}">Ratings</th>
             <th rowspan="2">Recommendation</th>
-            <th rowspan="2">Comments</th>
-            <th rowspan="2">Suggestions</th>
+            <th colspan="2" class="hint"><em>Hover over comments for full text</em></th>
         </tr>
         <tr>
             {% for rating_verbose in rating_fields.values %}
             <th>{{ rating_verbose }}</th>
             {% endfor %}
+            <th>Comments</th>
+            <th>Suggestions</th>
         </tr>
         {% for review in application_reviews %}
         <tr>

@@ -510,6 +510,12 @@ class InterviewReview(AbstractRating):
         blank=True,
         help_text="Any comments?",
     )
+    candidate_rank = models.TextField(
+        blank=True,
+        help_text="How does this candidate compare to others you've "
+                  "interviewed? Once you've completed all of your interviews, "
+                  "please rank this candidate within your interview pool."
+    )
 
     submitted = models.DateTimeField(auto_now_add=True, db_index=True)
 

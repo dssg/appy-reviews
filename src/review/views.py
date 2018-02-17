@@ -90,6 +90,7 @@ class InterviewReviewForm(ReviewForm):
         fields = RATING_NAMES + (
             'overall_recommendation',
             'comments',
+            'candidate_rank',
         )
         widgets = {rating_field: RatingWidget for rating_field in RATING_NAMES}
 

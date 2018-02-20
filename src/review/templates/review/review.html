@@ -223,7 +223,7 @@
             <th>Suggestions</th>
         </tr>
         {% for review in application_reviews %}
-        <tr>
+        <tr class="serif">
             <td class="text-left">{{ review.reviewer }}</td>
             {% for rating_name in rating_fields %}
             <td>
@@ -242,10 +242,10 @@
             {% endfor %}
             <td>{{ review.overall_recommendation }}</td>
             <td class="text-left" title="{{ review.comments }}">
-                {{ review.comments|truncatechars:120 }}
+                {{ review.comments|truncatechars:340 }}
             </td>
             <td class="text-left" title="{{ review.interview_suggestions }}">
-                {{ review.interview_suggestions|truncatechars:120 }}
+                {{ review.interview_suggestions|truncatechars:340 }}
             </td>
         </tr>
         {% endfor %}

@@ -57,15 +57,17 @@ DSSG {{ program_year }} Application Reviews
     </p>
 
     {% if interviews %}
-    <h3>Your applicant interviews</h3>
+    <h3>Your candidate interviews</h3>
 
     <dl id="interviews" class="formatted grad3 striped long-key short-width header">
-        <dt>Applicant</dt>
+        <dt>Candidate</dt>
         <dd>Recommendation</dd>
         <dd></dd>
         {% for interview in interviews %}
         <dt>{{ interview.application.applicant }}</dt>
-        <dd>{{ interview.interview_review.overall_recommendation|default:'–' }}</dd>
+        {% with interview.interview_review as review %}
+        <dd>{% if review.overall_recommendation == 'only_if' %}only if &hellip;{% else %}{{ review.overall_recommendation|default:'–' }}{% endif %}</dd>
+        {% endwith %}
         <dd>
             <a href="{% url 'review-interview' interview.pk %}" class="em-svg em-memo"></a>
         </dd>
@@ -92,7 +94,7 @@ DSSG {{ program_year }} Application Reviews
         <dd></dd>
         {% for review in reviews %}
         <dt>{{ review.application.applicant }}</dt>
-        <dd>{{ review.overall_recommendation }}</dd>
+        <dd>{% if review.overall_recommendation == 'only_if' %}only if &hellip;{% else %}{{ review.overall_recommendation }}{% endif %}</dd>
         <dd>
             <a href="{% url 'review-application' review.application.pk %}" class="em-svg em-memo"></a>
         </dd>

@@ -7,17 +7,21 @@
 
 {% block head %}
     <style>
-        #application-reviews {
+        section {
+            margin-bottom: 2em;
+        }
+
+        .review {
             background-color: #c0c0c0;
             border-spacing: 1px;
         }
-        #application-reviews caption h3 {
-            margin: 0.5em 0 1em;
+        .review caption h3 {
+            margin: 0 0 1em;
         }
-        #application-reviews td {
+        .review td {
             height: 50px;
         }
-        #application-reviews td, #application-reviews th {
+        .review td, .review th {
             padding: 0.4em;
         }
 
@@ -63,6 +67,9 @@
         }
 
         @media screen and (min-width: 800px) {
+            .column-content, .sidebar-scroll {
+                margin-bottom: 0;
+            }
             .sidebar-scroll {
                 max-height: 100vh;
                 overflow: auto;
@@ -204,52 +211,89 @@
     </dl>
 
     {% if review_type == 'interview' and application_reviews %}
-    <h2>Application reviews</h2>
-    <table id="application-reviews" class="striped text-center">
-        <caption>
-            <h3>Your peers' reviews of this application</h3>
-        </caption>
-        <tr>
-            <th rowspan="2">Reviewer</th>
-            <th colspan="{{ rating_fields|length }}">Ratings</th>
-            <th rowspan="2">Recommendation</th>
-            <th colspan="2" class="hint"><em>Hover over comments for full text</em></th>
-        </tr>
-        <tr>
-            {% for rating_verbose in rating_fields.values %}
-            <th>{{ rating_verbose }}</th>
+    <section>
+        <h2>Application reviews</h2>
+        <table id="application-reviews" class="review striped text-center">
+            <caption>
+                <h3>Your peers' reviews of this application</h3>
+            </caption>
+            <tr>
+                <th rowspan="2">Reviewer</th>
+                <th colspan="{{ rating_fields|length }}">Ratings</th>
+                <th rowspan="2">Recommendation</th>
+                <th colspan="2" class="hint"><em>Hover over comments for full text</em></th>
+            </tr>
+            <tr>
+                {% for rating_verbose in rating_fields.values %}
+                <th>{{ rating_verbose }}</th>
+                {% endfor %}
+                <th>Comments</th>
+                <th>Suggestions</th>
+            </tr>
+            {% for review in application_reviews %}
+            <tr class="serif">
+                <td class="text-left">{{ review.reviewer }}</td>
+                {% for rating_name in rating_fields %}
+                <td>
+                {% with review|lookup:rating_name as rating_value %}
+                    {% include "review/includes/rating_emoji.html" %}
+                {% endwith %}
+                </td>
+                {% endfor %}
+                <td>{% if review.overall_recommendation == 'only_if' %}only if &hellip;{% else %}{{ review.overall_recommendation }}{% endif %}</td>
+                <td class="text-left" title="{{ review.comments }}">
+                    {{ review.comments|truncatechars:340|linebreaksbr }}
+                </td>
+                <td class="text-left" title="{{ review.interview_suggestions }}">
+                    {{ review.interview_suggestions|truncatechars:340|linebreaksbr }}
+                </td>
+            </tr>
             {% endfor %}
-            <th>Comments</th>
-            <th>Suggestions</th>
-        </tr>
-        {% for review in application_reviews %}
-        <tr class="serif">
-            <td class="text-left">{{ review.reviewer }}</td>
-            {% for rating_name in rating_fields %}
-            <td>
-            {% with review|lookup:rating_name as rating_value %}
-            {% if rating_value == -1 %}
-                <i title="Inadequate" class="em-svg em--1"></i>
-            {% elif rating_value == 0 %}
-                <i title="Indeterminate" class="em-svg em-question">
-            {% elif rating_value == 1 %}
-                <i title="Adequate" class="em-svg em---1"></i>
-            {% elif rating_value == 2 %}
-                <i title="Exceptional" class="em-svg em-raised_hands"></i>
-            {% endif %}
-            {% endwith %}
-            </td>
+        </table>
+    </section>
+    {% endif %}
+
+    {% if interview_reviews %}
+    <section>
+        <h2>Interview feedback</h2>
+        <table id="interview-reviews" class="review striped text-center">
+            <caption>
+                <h3>Your peers' interviews of this candidate</h3>
+            </caption>
+            <tr>
+                <th rowspan="2">Interviewer</th>
+                <th colspan="{{ rating_fields|length }}">Ratings</th>
+                <th rowspan="2">Recommendation</th>
+                <th colspan="2" class="hint"><em>Hover over comments for full text</em></th>
+            </tr>
+            <tr>
+                {% for rating_verbose in rating_fields.values %}
+                <th>{{ rating_verbose }}</th>
+                {% endfor %}
+                <th>Comments</th>
+                <th>Ranking</th>
+            </tr>
+            {% for review in interview_reviews %}
+            <tr class="serif">
+                <td class="text-left">{{ review.interview_assignment.reviewer }}</td>
+                {% for rating_name in rating_fields %}
+                <td>
+                {% with review|lookup:rating_name as rating_value %}
+                    {% include "review/includes/rating_emoji.html" %}
+                {% endwith %}
+                </td>
+                {% endfor %}
+                <td>{% if review.overall_recommendation == 'only_if' %}only if &hellip;{% else %}{{ review.overall_recommendation }}{% endif %}</td>
+                <td class="text-left" title="{{ review.comments }}">
+                    {{ review.comments|truncatechars:600|linebreaksbr }}
+                </td>
+                <td class="text-left" title="{{ review.candidate_rank }}">
+                    {{ review.candidate_rank|truncatechars:600|linebreaksbr }}
+                </td>
+            </tr>
             {% endfor %}
-            <td>{{ review.overall_recommendation }}</td>
-            <td class="text-left" title="{{ review.comments }}">
-                {{ review.comments|truncatechars:340 }}
-            </td>
-            <td class="text-left" title="{{ review.interview_suggestions }}">
-                {{ review.interview_suggestions|truncatechars:340 }}
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+        </table>
+    </section>
     {% endif %}
 
     <div class="column-container">

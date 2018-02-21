@@ -256,15 +256,20 @@ def review_application(request, application_id=None):
 @require_http_methods(['GET', 'POST'])
 @login_required
 def review_interview(request, assignment_id):
-    # TODO: GET: list interview reviews if user is trusted?
     assignment = get_object_or_404(models.InterviewAssignment, pk=assignment_id)
     if assignment.reviewer != request.user:
         return http.HttpResponseForbidden("Forbidden")
+
+    interview_reviews = models.InterviewReview.objects.filter(
+        interview_assignment__application=assignment.application,
+    )
 
     try:
         review = assignment.interview_review
     except models.InterviewReview.DoesNotExist:
         review = models.InterviewReview(interview_assignment=assignment)
+    else:
+        interview_reviews = interview_reviews.exclude(pk=review.pk)
 
     if request.method == 'POST':
         review_form = InterviewReviewForm(data=request.POST,
@@ -286,9 +291,12 @@ def review_interview(request, assignment_id):
         'review_form': review_form,
         'review_type': 'interview',
         'application_reviews': assignment.application.application_reviews.all(),
+        'interview_reviews': (interview_reviews
+                              if assignment.interview_round ==
+                                 assignment.InterviewRound.round_two
+                              else None),
         'rating_fields': RATING_FIELDS,
     })
-
 
 
 class InvitationalConfirmEmailView(allauth.account.views.ConfirmEmailView):

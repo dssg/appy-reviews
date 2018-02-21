@@ -1,0 +1,9 @@
+{% if rating_value == -1 %}
+    <i title="Inadequate" class="em-svg em--1"></i>
+{% elif rating_value == 0 %}
+    <i title="Indeterminate" class="em-svg em-question"></i>
+{% elif rating_value == 1 %}
+    <i title="Adequate" class="em-svg em---1"></i>
+{% elif rating_value == 2 %}
+    <i title="Exceptional" class="em-svg em-raised_hands"></i>
+{% endif %}

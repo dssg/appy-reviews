@@ -87,6 +87,8 @@ def apps_to_review(reviewer, *, application_id=None, limit=None,
             page_count=settings.REVIEW_SURVEY_LENGTH,
             # ... which we haven't culled
             review_decision=True,
+            # ... which the applicant has not withdrawn
+            withdrawn=None,
         )
 
         if application_id:
@@ -95,7 +97,7 @@ def apps_to_review(reviewer, *, application_id=None, limit=None,
         if not include_reviewed:
             applications = applications.exclude(
                 # exclude applications which this reviewer has already reviewed
-                review__reviewer=reviewer,
+                application_reviews__reviewer=reviewer,
             )
 
         if limit is not None:
@@ -156,6 +158,8 @@ def apps_to_review(reviewer, *, application_id=None, limit=None,
             WHERE
                 -- ... which we haven't culled:
                 "application"."review_decision" IS TRUE AND
+                -- ... which the applicant has not withdrawn:
+                "application"."withdrawn" IS NULL AND
                 -- ... for this program year:
                 "application"."program_year" = %(program_year)s {reviewed_where_expr} {extra_where_expr}
 

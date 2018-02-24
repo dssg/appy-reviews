@@ -328,6 +328,7 @@ class Application(models.Model):
 
     program_year = models.IntegerField()
     created = models.DateTimeField(auto_now_add=True)
+    withdrawn = models.DateTimeField(null=True)
 
     class Meta:
         db_table = 'application'

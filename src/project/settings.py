@@ -419,6 +419,33 @@ REVIEW_APPLICATION_FIELDS = {
             '''sell your info.)''',
         )),
     )),
+    'survey_recommendation_2017': (
+        'Reference {{ count }}', (
+            ('Reference Name', ('First', 'Last')),
+            ('Reference Email', ('Your Email',)),
+            ('Reference Organization/University', ('Your Organization/University',)),
+            ('Applicant Email', ('Applicant Email Address',)),
+            ('Reference has known applicant for', ('How long have you known the applicant?',)),
+            ('In the capacity of', ('In what capacity?',)),
+            ("Applicant's ability in computer programming", ('Computer programming',)),
+            ("Applicant's ability in statistics", ('Statistics',)),
+            ("Applicant's ability in data analysis", ('Data analysis skills',)),
+            ("Applicant's ability in social science methodology", ('Social science methods',)),
+            ("Applicant's communication ability", ('Communication ability',)),
+            ("Applicant's experience working in teams", ('Experience working in teams',)),
+            ("Applicant's interest and passion for social good", ('Interest and passion for social good',)),
+			('''The fellowship is very competitive and we are looking for a '''
+             '''mix of people: smart, quantitative, analytical fellows who '''
+             '''care about using their skills to make a social impact. \n\n'''
+             '''In your opinion, should we accept this applicant?''', None),
+            ('Recommendation letter', (
+                '''Please upload a letter in Word document or PDF format '''
+                '''below or paste the text in the box below''',
+                '''Please attach your recommendation as an additional Word, '''
+                '''PDF or text document.''',
+            )),
+            ('Additional comments', ('''Anything else you'd like to tell us?''',)),
+    )),
     'survey_recommendation_2018': (
         'Reference {{ count }}', (
             ('Reference Name', ('First', 'Last')),

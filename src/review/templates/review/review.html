@@ -230,14 +230,13 @@
                 <th rowspan="2">Reviewer</th>
                 <th colspan="{{ rating_fields|length }}">Ratings</th>
                 <th rowspan="2">Recommendation</th>
-                <th colspan="2" class="hint"><em>Hover over comments for full text</em></th>
+                <th rowspan="2">Comments</th>
+                <th rowspan="2">Suggestions</th>
             </tr>
             <tr>
                 {% for rating_verbose in rating_fields.values %}
                 <th>{{ rating_verbose }}</th>
                 {% endfor %}
-                <th>Comments</th>
-                <th>Suggestions</th>
             </tr>
             {% for review in application_reviews %}
             <tr class="serif">
@@ -250,11 +249,11 @@
                 </td>
                 {% endfor %}
                 <td>{% if review.overall_recommendation == 'only_if' %}only if &hellip;{% else %}{{ review.overall_recommendation }}{% endif %}</td>
-                <td class="text-left" title="{{ review.comments }}">
-                    {{ review.comments|truncatechars:340|linebreaksbr }}
+                <td class="text-left">
+                    {{ review.comments|linebreaksbr }}
                 </td>
-                <td class="text-left" title="{{ review.interview_suggestions }}">
-                    {{ review.interview_suggestions|truncatechars:340|linebreaksbr }}
+                <td class="text-left">
+                    {{ review.interview_suggestions|linebreaksbr }}
                 </td>
             </tr>
             {% endfor %}
@@ -273,14 +272,13 @@
                 <th rowspan="2">Interviewer</th>
                 <th colspan="{{ rating_fields|length }}">Ratings</th>
                 <th rowspan="2">Recommendation</th>
-                <th colspan="2" class="hint"><em>Hover over comments for full text</em></th>
+                <th rowspan="2">Comments</th>
+                <th rowspan="2">Ranking</th>
             </tr>
             <tr>
                 {% for rating_verbose in rating_fields.values %}
                 <th>{{ rating_verbose }}</th>
                 {% endfor %}
-                <th>Comments</th>
-                <th>Ranking</th>
             </tr>
             {% for review in interview_reviews %}
             <tr class="serif">
@@ -293,11 +291,11 @@
                 </td>
                 {% endfor %}
                 <td>{% if review.overall_recommendation == 'only_if' %}only if &hellip;{% else %}{{ review.overall_recommendation }}{% endif %}</td>
-                <td class="text-left" title="{{ review.comments }}">
-                    {{ review.comments|truncatechars:600|linebreaksbr }}
+                <td class="text-left">
+                    {{ review.comments|linebreaksbr }}
                 </td>
-                <td class="text-left" title="{{ review.candidate_rank }}">
-                    {{ review.candidate_rank|truncatechars:600|linebreaksbr }}
+                <td class="text-left">
+                    {{ review.candidate_rank|linebreaksbr }}
                 </td>
             </tr>
             {% endfor %}

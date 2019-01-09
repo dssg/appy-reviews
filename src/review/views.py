@@ -3,7 +3,6 @@ import urllib
 
 import allauth.account.views
 import allauth.account.utils
-from allauth.compat import is_anonymous
 from allauth.utils import get_request_param
 from django import forms, http
 from django.conf import settings
@@ -322,7 +321,7 @@ class InvitationalConfirmEmailView(allauth.account.views.ConfirmEmailView):
 
         """
         user = confirmation.email_address.user
-        if is_anonymous(self.request.user):
+        if self.request.user.is_anonymous:
             if user.has_usable_password() or user.socialaccount_set.exists():
                 # passed as callable, as this method
                 # depends on the authenticated state
@@ -338,6 +337,7 @@ class InvitationalConfirmEmailView(allauth.account.views.ConfirmEmailView):
             )
 
         return None
+
 
 invite_confirm_email = InvitationalConfirmEmailView.as_view()
 
@@ -361,5 +361,6 @@ class InvitationalPasswordSetView(allauth.account.views.PasswordSetView):
             self.request,
             self.redirect_field_name,
         ) or super().get_success_url()
+
 
 invite_password_set = login_required(InvitationalPasswordSetView.as_view())

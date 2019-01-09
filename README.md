@@ -11,9 +11,9 @@ A "smart" Web application for reviewing DSSG program application submissions
 
 ### Set-up
 
-1. Create a pyenv virtualenv `appy` under Python v3.6.3:
+1. Create a pyenv virtualenv `appy` under Python v3.7.2:
 
-        pyenv virtualenv 3.6.3 appy
+        pyenv virtualenv 3.7.2 appy
 
 1. Install console requirements:
 

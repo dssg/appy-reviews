@@ -223,6 +223,14 @@ class Develop(DbLocal):
                 ROOT_PATH,
             ]
 
+        try:
+            yield self.local['docker'][
+                'stop',
+                args.name,
+            ]
+        except self.local.ProcessExecutionError:
+            pass
+
         yield self.run(
             '-d',
             '--name', args.name,

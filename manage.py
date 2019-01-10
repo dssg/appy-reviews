@@ -311,6 +311,7 @@ class Etl(DbLocal):
         parser.add_argument(
             'year',
             type=int,
+            metavar='YEAR',
             help="Program year (e.g. 2019)",
         )
 
@@ -318,11 +319,15 @@ class Etl(DbLocal):
                  choices=('execute', 'inspect',), default='execute', nargs='?',
                  help="either execute command, or inspect state of system "
                       "only, do not load applications (default: execute)")
+    @localmethod('-d', '--dry-run', action='store_true',
+                 help="do not commit database transactions so as to test effect "
+                      "of command")
     def apps(self, args):
         """map wufoo data into appy"""
         return self.manage()[
             'loadapps',
             '-s', f'_{args.year}',
+            ('--dry-run' if args.dry_run else ()),
             args.year,
             args.subcommand,
         ]

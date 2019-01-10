@@ -254,8 +254,8 @@ class Develop(DbLocal):
             'webapp',
         ]
 
-    @localmethod('mcmd', metavar='command', help="django management command")
     @localmethod('remainder', metavar='command arguments', nargs=REMAINDER)
+    @localmethod('mcmd', metavar='command', help="django management command")
     def djmanage(self, args):
         """manage the appy-reviews django project"""
         return (
@@ -305,6 +305,15 @@ class Db(DbLocal):
 class Etl(DbLocal):
     """manage survey data"""
 
+    def __init__(self, parser):
+        super().__init__(parser)
+
+        parser.add_argument(
+            'year',
+            type=int,
+            help="Program year (e.g. 2019)",
+        )
+
     @localmethod('subcommand',
                  choices=('execute', 'inspect',), default='execute', nargs='?',
                  help="either execute command, or inspect state of system "
@@ -313,13 +322,15 @@ class Etl(DbLocal):
         """map wufoo data into appy"""
         return self.manage()[
             'loadapps',
-            '-s', '_2018',
-            '2018',
+            '-s', f'_{args.year}',
+            args.year,
             args.subcommand,
         ]
 
     @localmethod('--csv', action='store_true', default=False, dest='csv_cache',
                  help="cache data in local CSV files")
+    @localmethod('-n', '--no-database', action='store_false', default=True, dest='write_to_db',
+                 help="Do not write data to database")
     def wufoo(self, args, parser):
         """load initial survey data"""
         if not os.getenv('WUFOO_API_KEY'):
@@ -329,13 +340,11 @@ class Etl(DbLocal):
                 '\tWUFOO_API_KEY=xx-xx-xx DATABASE_URL=... manage etl bootstrap'
             )
 
-        # FIXME: This wasn't working, rather only when command is run
-        # FIXME: by user in shell
-        # TODO: Likely must disable TEE modifier and use, say, FG, instead
         return self.manage(WUFOO_API_KEY=None)[
             'loadwufoo',
             '-v', args.verbosity,
-            '-f', '"^2018 "',
+            '-f', f'^{args.year} ',
+            ('--no-database' if not args.write_to_db else ()),
             ('output' if args.csv_cache else '-'),
         ]
 

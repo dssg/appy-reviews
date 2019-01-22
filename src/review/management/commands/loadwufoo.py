@@ -6,12 +6,11 @@ import os
 import pathlib
 import re
 import subprocess
-import sys
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
-from plumbum import BG, local
+from plumbum import local
 from pyfoo import PyfooAPI
 
 
@@ -210,7 +209,7 @@ class Command(BaseCommand):
         for (count, entry) in enumerate(entries, 1):
             writer.writerow(entry)
 
-        self.report("\twriting entries to database:", count)
+        self.report("\twriting entries:", count)
 
     def write_fields_csv(self, head, fields, outfile):
         writer = csv.writer(outfile, lineterminator=os.linesep)
@@ -219,7 +218,7 @@ class Command(BaseCommand):
             if field_id and field_id in head:
                 writer.writerow([field_id, field_title])
 
-        self.report("\twriting fields to database:", count)
+        self.report("\twriting fields:", count)
 
     def write_disk(self, target, name, head, entries, fields):
         """Write CSV to disk."""

@@ -1,0 +1,10 @@
+Dear {{reference_first}} {{reference_last}},
+
+{{applicant_first}} {{applicant_last}} has requested a letter of recommendation from you in support of an application for admission to the Data Science for Social Good Fellowship Program run by the University of Chicago. If you have not submitted your recommendation already, please use the link {{reference_link}} and submit the recommendation by Jan 31, {{program_year}}.
+
+Questions about submitting your recommendation may be addressed to datascience@uchicago.edu. Thank you for your support of the applicant and the Data Science for Social Good Fellowship.
+
+Thank you,
+Data Science for Social Good Fellowship
+University of Chicago
+dssg.uchicago.edu

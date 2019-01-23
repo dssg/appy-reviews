@@ -1,0 +1,1 @@
+Letter of recommendation for {{applicant_first}} {{applicant_last}}

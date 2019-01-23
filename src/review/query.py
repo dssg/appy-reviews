@@ -35,41 +35,69 @@ def apps_to_review(reviewer, *, application_id=None, limit=None,
     to construct a typical QuerySet without special ordering.
 
     """
+    #
     # Test that reviewer can help with application reviews
     #
     # (For the moment, simply using data collected from wufoo;
     # perhaps next year we'll gather this upon registration.)
     #
-    with connection.cursor() as cursor:
-        cursor.execute(f'''\
-			select field_id
-            from "{SurveyTableName.reviewer_fields}"
-			where field_title in %(field_titles)s
-            order by field_title
-            ''',
-            {'field_titles': ('Application Reviews',
-                              'Email')},
-        )
-        (
-            (field_id_reviewer,),
-            (field_id_email,),
-         ) = cursor
+    #
+    # FIXME: As of yet we have no such survey_reviewer_2019 table.
+    #
+    # We still probably want some check somewhere (either here or at time of sign-up).
+    # Easiest would probably be a simple table (which could even be populated in the future from survey data if that's needed):
+    #
+    #     reviewer_allowed
+    #
+    #     year | email
+    #     ----------------------------
+    #     2018 | jesselondon@gmail.com
+    #     2018 | rayidghani@gmail.com
+    #     …
+    #     2019 | rayidghani@gmail.com
+    #     …
+    #
+    #     unique key: (year, email)
+    #
+    # (The year column would allow easy look-up into the future.)
+    # (The email column would allow this table to be populated before a person has signed up; and, then the table could be used at either juncture.)
+    #
+    # Note: As elsewhere, will have to be careful about email character casing.
+    # (May make sense to use CIEmailField ... everywhere, but at least in the new table above.)
+    #
+    if settings.REVIEW_REVIEWER_APPROVED:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f'''\
+                    select field_id
+                    from "{SurveyTableName.reviewer_fields}"
+                    where field_title in %(field_titles)s
+                    order by field_title
+                ''',
+                {'field_titles': ('Application Reviews',
+                                  'Email')},
+            )
+            (
+                (field_id_reviewer,),
+                (field_id_email,),
+             ) = cursor
 
-        cursor.execute(f'''\
-            select 1
-            from "{SurveyTableName.reviewer}"
-            where "{field_id_email}"=%(reviewer_email)s and
-                  "{field_id_reviewer}"!=''
-            ''',
-            {'reviewer_email': reviewer.email},
-        )
-        try:
-            (result,) = next(iter(cursor))
-        except StopIteration:
-            if reviewer.email not in settings.REVIEW_WHITELIST:
-                raise UnexpectedReviewer
-        else:
-            assert result
+            cursor.execute(
+                f'''\
+                    select 1
+                    from "{SurveyTableName.reviewer}"
+                    where "{field_id_email}"=%(reviewer_email)s and
+                          "{field_id_reviewer}"!=''
+                ''',
+                {'reviewer_email': reviewer.email},
+            )
+            try:
+                (result,) = next(iter(cursor))
+            except StopIteration:
+                if reviewer.email not in settings.REVIEW_WHITELIST:
+                    raise UnexpectedReviewer
+            else:
+                assert result
 
     # Return stream of applications appropriate to reviewer,
     # optionally ordered by appropriateness

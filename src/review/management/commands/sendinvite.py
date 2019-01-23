@@ -11,6 +11,7 @@ from review.models import Reviewer
 class Command(LabelCommand):
 
     label = 'email'
+    help = "Send email(s) to invite reviewer(s) to use Appy"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

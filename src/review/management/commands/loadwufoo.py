@@ -216,7 +216,9 @@ class Command(BaseCommand):
         writer.writerow(['field_id', 'field_title'])
         for (count, (field_id, field_title)) in enumerate(fields, 1):
             if field_id and field_id in head:
-                writer.writerow([field_id, field_title])
+                # TODO: test that preferred name stripped correctly
+                # (and update settings: test against 1795)
+                writer.writerow([field_id, field_title.strip()])
 
         self.report("\twriting fields:", count)
 

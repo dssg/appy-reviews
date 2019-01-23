@@ -133,20 +133,39 @@ def list_applications(request, content_type='html'):
 
     if query_raw:
         with connection.cursor() as cursor:
-            cursor.execute('''\
-                SELECT "EntryId"
-                FROM "survey_application_1_2018"
-                WHERE
-                    LOWER("Field451") IN %(query_terms)s OR
-                    LOWER("Field452") IN %(query_terms)s OR
-                    LOWER("Field461") IN %(query_terms)s
+            # FIXME: assumes survey field IDs
+            #
+            # These could -- and perhaps simply should -- be configured in settings.
+            #
+            # Alternatively, (though not *great*), could look these up, assuming applicant's are the first listed:
+            #
+            #     select field_id from (
+            #         select distinct on (2) field_id, lower(field_title)
+            #         from survey_application_1_fields_YEAR
+            #         where field_id like 'Field%' and (
+            #             field_title ilike 'first%' or
+            #             field_title ilike 'last%' or
+            #             field_title ilike 'email%'
+            #         ) order by 2, field_id
+            #     ) _fields
+            #     order by field_id
+            #     limit 3
+            #
+            cursor.execute(
+                f'''\
+                    SELECT "EntryId"
+                    FROM "survey_application_1_{settings.REVIEW_PROGRAM_YEAR}"
+                    WHERE
+                        LOWER("Field451") IN %(query_terms)s OR
+                        LOWER("Field452") IN %(query_terms)s OR
+                        LOWER("Field461") IN %(query_terms)s
                 ''',
                 {'query_terms': tuple(query_raw.lower().split())}
             )
             entry_ids = [row[0] for row in cursor]
 
         applications = applications.filter(
-            applicationpage__table_name='survey_application_1_2018',
+            applicationpage__table_name=f'survey_application_1_{settings.REVIEW_PROGRAM_YEAR}',
             applicationpage__column_name='EntryId',
             applicationpage__entity_code__in=entry_ids,
         )

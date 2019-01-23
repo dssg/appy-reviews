@@ -218,8 +218,9 @@ ACCOUNT_USERNAME_REQUIRED = False
 
 # review
 
-REVIEW_PROGRAM_YEAR = 2018
+REVIEW_PROGRAM_YEAR = 2019
 REVIEW_SURVEY_LENGTH = 2
+REVIEW_REVIEWER_APPROVED = False  # FIXME
 REVIEW_WHITELIST = {
     'jslondon@uchicago.edu',
     'jesselondon@gmail.com',
@@ -234,21 +235,22 @@ REVIEW_APPLICATION_FIELDS = {
     #           None,
     #       ),
     #       ...
-    'survey_application_1_2018': (
-        'Part 1', (
-        ('First Choice', None),
-        ('Second Choice', None),
-        ('Third Choice', None),
-        ('''Any constraints or other information you want to give us '''
-         '''about your location preferences''', None),
+    # TODO: Check for remaining hold-overs from 2018
+    'survey_application_1_2019': (
+        'Location Preference', (
+        ('Preference', ('Your Choice',)),
+        ('Constraints or other information', (
+            '''Any constraints or other information you want to give us '''
+            '''about your location preferences''',
+        )),
     )),
-    'survey_application_2_2018': (
-        'Part 2', (
+    'survey_application_2_2019': (
+        'Main', (
         ('Full Name', (('First', 0), ('Last', 0))),
-        ('Preferred Name', None),
+        ('Preferred Name\n', None),  # TODO: ensure that ETL strips whitespace from field titles
         ('Email', None),
         ('Locale', ('City', 'State / Province / Region', 'Country')),
-        ('Citizenship and US Visa Status', None),
+        ('Citizenship and Visa Status for US and UK', None),
         ('Self description', ('I am a:',)),
         ('Gender identification', ('I identify my gender as:',)),
         ('University Name', None),
@@ -277,7 +279,7 @@ REVIEW_APPLICATION_FIELDS = {
         ('Julia', None),
         ('SQL', None),
         ('GIS tools', None),
-        ('Other', None),
+        ('Other', None),  # TODO: confirm that these "Other"s come through
         ('Programming Experience', (
             '''Tell us more about your programming experience. '''
             '''What projects have you worked on, what was your role, and '''
@@ -395,7 +397,7 @@ REVIEW_APPLICATION_FIELDS = {
             '''summer at DSSG''',
         )),
         ('How did you hear about this program?', None),
-        ('''Have you applied to UChicago's DSSG in the past? ''', None),
+        ('''Have you applied to DSSG in the past?''', None),
         ('Additional information', (
             '''Anything else you'd like to tell us? If you have applied for '''
             '''DSSG in the past, please tell us what's new since you '''
@@ -410,7 +412,7 @@ REVIEW_APPLICATION_FIELDS = {
         )),
         ('Interested in DSaPP', (
             '''I am currently available and interested in a post-summer '''
-            '''job opportunity with the Center for Data Science and '''
+            '''job opportunity at UChicago Center for Data Science and '''
             'Public Policy',
         )),
         ('May share info', (
@@ -419,34 +421,7 @@ REVIEW_APPLICATION_FIELDS = {
             '''sell your info.)''',
         )),
     )),
-    'survey_recommendation_2017': (
-        'Reference {{ count }}', (
-            ('Reference Name', ('First', 'Last')),
-            ('Reference Email', ('Your Email',)),
-            ('Reference Organization/University', ('Your Organization/University',)),
-            ('Applicant Email', ('Applicant Email Address',)),
-            ('Reference has known applicant for', ('How long have you known the applicant?',)),
-            ('In the capacity of', ('In what capacity?',)),
-            ("Applicant's ability in computer programming", ('Computer programming',)),
-            ("Applicant's ability in statistics", ('Statistics',)),
-            ("Applicant's ability in data analysis", ('Data analysis skills',)),
-            ("Applicant's ability in social science methodology", ('Social science methods',)),
-            ("Applicant's communication ability", ('Communication ability',)),
-            ("Applicant's experience working in teams", ('Experience working in teams',)),
-            ("Applicant's interest and passion for social good", ('Interest and passion for social good',)),
-			('''The fellowship is very competitive and we are looking for a '''
-             '''mix of people: smart, quantitative, analytical fellows who '''
-             '''care about using their skills to make a social impact. \n\n'''
-             '''In your opinion, should we accept this applicant?''', None),
-            ('Recommendation letter', (
-                '''Please upload a letter in Word document or PDF format '''
-                '''below or paste the text in the box below''',
-                '''Please attach your recommendation as an additional Word, '''
-                '''PDF or text document.''',
-            )),
-            ('Additional comments', ('''Anything else you'd like to tell us?''',)),
-    )),
-    'survey_recommendation_2018': (
+    'survey_recommendation_2019': (
         'Reference {{ count }}', (
             ('Reference Name', ('First', 'Last')),
             ('Reference Email', ('Your Email',)),

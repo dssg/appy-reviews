@@ -22,7 +22,8 @@ class Appy(LocalRoot):
 class Build(Local):
     """build container image"""
 
-    DEFAULT_NAMETAG = 'dsapp/appy-reviews/web:latest'
+    REPOSITORY_NAME = 'dsapp/appy-reviews/web'
+    DEFAULT_NAMETAG = REPOSITORY_NAME + ':latest'
 
     REGISTRY = '093198349272.dkr.ecr.us-west-2.amazonaws.com'
 
@@ -77,7 +78,11 @@ class Build(Local):
 
         if args.label:
             for label in args.label:
-                command = command['-t', label]
+                name = self.REPOSITORY_NAME + ':' + label
+                command = command[
+                    '-t', name,
+                    '-t', self.get_full_name(name),
+                ]
 
         yield command[ROOT_PATH]
 
@@ -107,7 +112,7 @@ class Build(Local):
 
         yield self.local['docker'][
             'push',
-            self.get_full_name(args.name),
+            self.get_full_name(self.REPOSITORY_NAME),
         ]
 
     @localmethod

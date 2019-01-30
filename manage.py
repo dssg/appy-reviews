@@ -126,8 +126,11 @@ class Build(Local):
         else:
             command = command['appy-reviews-dev']
 
+        command = command['--nohang']
+
         if args.label:
             return command['-l', args.label[0]]
+
         return command
 
 
@@ -408,6 +411,8 @@ class Static(LocalContainer):
 class DNS(Local):
     """manage site DNS"""
 
+    SET_STYLE = 'alias'  # alias or cname
+
     class StrEnum(str, enum.Enum):
 
         def __str__(self):
@@ -463,9 +468,10 @@ class DNS(Local):
                     'list-resource-record-sets',
                     '--hosted-zone-id', '{}',
                     '--query', f"ResourceRecordSets[?Name == '{self.Domain.fqdn}']",
-                ] | self.local['jq'][
-                    '-r',
-                    '.[0].ResourceRecords[0].Value',
+                ] | self.local['jq']['-r'][
+                    '.[0].AliasTarget.DNSName'
+                    if self.SET_STYLE == 'alias' else
+                    '.[0].ResourceRecords[0].Value'
                 ]
             )
 
@@ -473,7 +479,7 @@ class DNS(Local):
             # dry run
             return
 
-        cname = output.strip()
+        cname = output.strip('. \n')
         for value in self.CName:
             if value == cname:
                 print(value.name.upper() | colors.info)
@@ -487,6 +493,15 @@ class DNS(Local):
         content bucket
 
         """
+        target_cname = self.CName[args.target]
+
+        if target_cname.endswith('.elasticbeanstalk.com'):
+            alias_target_zone_id = 'Z38NKT9BP95V3O'
+        elif target_cname.endswith('.cloudfront.net'):
+            alias_target_zone_id = 'Z2FDTNDATAQYW2'
+        else:
+            raise ValueError("HostedZoneId for target unknown", target_cname)
+
         with self.profile_hint():
             yield self.prepare_hosted_zone() | self.local['xargs'][
                 '-I', '{}',
@@ -494,15 +509,25 @@ class DNS(Local):
                 'route53',
                 'change-resource-record-sets',
                 '--hosted-zone-id', '{}',
-                '--change-batch', '''{
+                '--change-batch', ('''{
                     "Changes": [{
                         "Action": "UPSERT",
                         "ResourceRecordSet": {
-                            "Name": "%s",
-                            "Type": "CNAME",
-                            "TTL": 300,
-                            "ResourceRecords": [{"Value": "%s"}]
+                            "Name": "%%s",
+                            %s
                         }
                     }]
-                }''' % (self.Domain.fqdn, self.CName[args.target]),
+                }''' % (
+                    '''"Type": "A",
+                       "AliasTarget": {
+                           "HostedZoneId": "%s",
+                           "DNSName": "%%s",
+                           "EvaluateTargetHealth": false
+                       }''' % alias_target_zone_id
+                    if self.SET_STYLE == 'alias' else
+                    '''"Type": "CNAME",
+                       "TTL": 300,
+                       "ResourceRecords": [{"Value": "%s"}]'''
+                    )
+                ) % (self.Domain.fqdn, target_cname),
             ]

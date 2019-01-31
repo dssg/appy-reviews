@@ -1,3 +1,5 @@
+import argparse
+import datetime
 import sys
 
 from allauth.account.adapter import get_adapter
@@ -5,6 +7,10 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import connection
 from django.utils.safestring import mark_safe
+
+
+APPLICANT_JESSE = ('Applicant Jesse', 'Applicant London', 'jesselondon@gmail.com')
+APPLICANT_RAYID = ('Applicant Rayid', 'Applicant Ghani', 'rayidghani@gmail.com')
 
 
 SURVEY_FIELDS = (
@@ -19,13 +25,27 @@ SURVEY_FIELDS = (
     ('ref1_email', 'Field673'),
 )
 
+APPLICATION_FORM2_URL = ('https://datascience.wufoo.com/forms/'
+                         '2019-dssg-fellowship-application-part-2/def/field461={app_email}')
+
 REFERENCE_FORM_URL = ('https://datascience.wufoo.com/forms/'
                       '?formname=2019-dssg-fellow-recommendation-form&field461={app_email}')
+
+VALID_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
+
+
+def valid_datetime(value):
+    try:
+        return datetime.datetime.strptime(value, VALID_DATETIME_FORMAT)
+    except ValueError:
+        pass
+
+    raise argparse.ArgumentTypeError(f"Invalid date: '{value}'.")
 
 
 class Command(BaseCommand):
 
-    help = "Send emails to applicants' references to remind them to submit"
+    help = "Send reminder emails to applicants or to applicants' references"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,50 +53,124 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '-t', '--template',
-            default='review/email/reference_reminder',
-            help="email template prefix "
-                 "(default: review/email/reference_reminder)",
-        )
-        parser.add_argument(
             '--test',
             action='store_true',
             help="send test emails to Jesse & Rayid",
         )
 
-    def handle(self, template, test, verbosity, **_options):
-        for ((app_first, app_last, app_email), references) in self.stream_references(test):
+        subparsers = parser.add_subparsers(dest='target')
+        subparsers.required = True
+
+        applicants_parser = subparsers.add_parser(
+            'applicant',
+            description='remind applicants to complete their applications',
+            help='remind applicants to complete their applications',
+        )
+        applicants_parser.add_argument(
+            '-t', '--template',
+            default='review/email/applicant_reminder',
+            help="email template prefix "
+                 "(default: review/email/applicant_reminder)",
+        )
+
+        references_parser = subparsers.add_parser(
+            'reference',
+            description='remind references to submit their letters',
+            help='remind references to submit their letters',
+        )
+        references_parser.add_argument(
+            '-t', '--template',
+            default='review/email/reference_reminder',
+            help="email template prefix "
+                 "(default: review/email/reference_reminder)",
+        )
+        references_parser.add_argument(
+            '--since',
+            metavar='TIMESTAMP',
+            type=valid_datetime,
+            help="only send reminders to references added to system after "
+                 "database-compatible timestamp (e.g.: 2004-10-19T10:23:54)",
+        )
+
+    def handle(self, target, template, test, verbosity, since=None, **_options):
+        data_handler = getattr(self, f'stream_{target}s')
+
+        for ((app_first, app_last, app_email), reminder_targets) in data_handler(since=since,
+                                                                                 test=test):
             if not app_first or not app_last or not app_email:
                 print("WARNING: skipping malformed applicant",
                       repr(app_first), repr(app_last), repr(app_email), file=sys.stderr)
                 continue
 
             if verbosity >= 2:
-                print("on behalf of:", app_first, app_last, f"({app_email})")
-                print("    emailing:", ' and '.join(ref[2] for ref in references))
+                print(
+                    "on behalf of:" if target == 'reference' else 'emailing:',
+                    app_first,
+                    app_last,
+                    f"({app_email})",
+                )
+                if target == 'reference':
+                    print("    emailing:", ' and '.join(ref[2] for ref in reminder_targets))
 
-            for (ref_first, ref_last, ref_email) in references:
-                if not ref_last or not ref_email:
-                    if ref_first or ref_last or ref_email:
-                        print("WARNING: skipping malformed reference",
+            for (target_first, target_last, target_email) in reminder_targets:
+                if not target_last or not target_email:
+                    if target_first or target_last or target_email:
+                        print("WARNING: skipping malformed reminder target",
                               repr(app_first), repr(app_last), repr(app_email), file=sys.stderr)
                     continue
 
                 self.send_mail(
                     template,
-                    ref_email,
-                    ref_first,
-                    ref_last,
+                    target_email,
+                    target_first,
+                    target_last,
                     app_email,
                     app_first,
                     app_last,
                 )
 
     @staticmethod
-    def stream_references(test=False):
+    def stream_applicants(since=None, test=False):
+        if since is not None:
+            raise NotImplementedError
+
         if test:
+            # (applicant info, target infos)
+            yield (APPLICANT_JESSE, [APPLICANT_JESSE])
+            yield (APPLICANT_RAYID, [APPLICANT_RAYID])
+
+            return
+
+        select_fields = ', '.join(
+            f'survey_1."{field_name}" AS {label}'
+            for (label, field_name) in SURVEY_FIELDS[:3]
+        )
+        assert select_fields
+
+        (join_label, join_field) = SURVEY_FIELDS[2]
+        assert join_label == 'app_email'
+
+        with connection.cursor() as cursor:
+            # query info of applicants who are in part-1 but not part-2 of the survey
+            cursor.execute(f"""\
+                SELECT {select_fields}
+                FROM survey_application_1_{settings.REVIEW_PROGRAM_YEAR} AS survey_1
+                LEFT OUTER JOIN survey_application_2_{settings.REVIEW_PROGRAM_YEAR} AS survey_2
+                USING ("{join_field}")
+                WHERE survey_2."{join_field}" IS NULL
+            """)
+            for row in cursor:
+                # (applicant info, [targets: the applicant])
+                yield (row, [row])
+
+    @staticmethod
+    def stream_references(since=None, test=False):
+        if test:
+            if since is not None:
+                raise NotImplementedError
+
             yield (
-                ('Applicant Jesse', 'Applicant London', 'jesselondon@gmail.com'),
+                APPLICANT_JESSE,
                 (
                     ('Reference Rayid', 'Reference Ghani', 'rayidghani@gmail.com'),
                     ('Reference Rayid', 'Reference Ghani', 'rayid@uchicago.edu'),
@@ -84,7 +178,7 @@ class Command(BaseCommand):
             )
 
             yield (
-                ('Applicant Rayid', 'Applicant Ghani', 'rayidghani@gmail.com'),
+                APPLICANT_RAYID,
                 (
                     ('Reference Jesse', 'Reference London', 'jesselondon@gmail.com'),
                     ('Reference Jesse', 'Reference London', 'jslondon@uchicago.edu'),
@@ -100,9 +194,16 @@ class Command(BaseCommand):
         assert select_fields
 
         with connection.cursor() as cursor:
-            cursor.execute(f"""\
-                SELECT {select_fields} FROM survey_application_1_{settings.REVIEW_PROGRAM_YEAR}
-            """)
+            cursor.execute(
+                f"""\
+                    SELECT {select_fields} FROM survey_application_1_{settings.REVIEW_PROGRAM_YEAR}
+                """ + (
+                    f"""\
+                        WHERE CAST("DateCreated" as timestamp) > %s
+                    """ if since is not None else ''
+                ),
+                [since],
+            )
             for row in cursor:
                 yield (
                     row[:3],            # applicant info
@@ -114,7 +215,7 @@ class Command(BaseCommand):
 
     def send_mail(
         self, template,
-        address, reference_first, reference_last,
+        address, target_first, target_last,
         app_email, app_first, app_last
     ):
         assert not hasattr(settings, 'ACCOUNT_EMAIL_SUBJECT_PREFIX')
@@ -127,8 +228,9 @@ class Command(BaseCommand):
             self.adapter.send_mail(template, address, {
                 'applicant_first': app_first,
                 'applicant_last': app_last,
-                'reference_first': reference_first,
-                'reference_last': reference_last,
+                'target_first': target_first,
+                'target_last': target_last,
+                'application_link': mark_safe(APPLICATION_FORM2_URL.format(app_email=app_email)),
                 'reference_link': mark_safe(REFERENCE_FORM_URL.format(app_email=app_email)),
                 'program_year': settings.REVIEW_PROGRAM_YEAR,
             })

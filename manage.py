@@ -322,23 +322,19 @@ class Etl(DbLocal):
             metavar='YEAR',
             help="Program year (e.g. 2019)",
         )
+        parser.add_argument(
+            '--all',
+            action='store_true',
+            help="perform all operations (subcommands wufoo & apps)",
+        )
 
-    @localmethod('subcommand',
-                 choices=('execute', 'inspect',), default='execute', nargs='?',
-                 help="either execute command, or inspect state of system "
-                      "only, do not load applications (default: execute)")
-    @localmethod('-d', '--dry-run', action='store_true',
-                 help="do not commit database transactions so as to test effect "
-                      "of command")
-    def apps(self, args):
-        """map wufoo data into appy"""
-        return self.manage()[
-            'loadapps',
-            '-s', f'_{args.year}',
-            ('--dry-run' if args.dry_run else ()),
-            args.year,
-            args.subcommand,
-        ]
+    def prepare(self, args, parser):
+        if not args.all:
+            super().prepare(args)
+            return
+
+        yield self['wufoo'].delegate()
+        yield self['apps'].delegate()
 
     @localmethod('--csv', action='store_true', default=False, dest='csv_cache',
                  help="cache data in local CSV files")
@@ -359,6 +355,23 @@ class Etl(DbLocal):
             '-f', f'^{args.year} ',
             ('--no-database' if not args.write_to_db else ()),
             ('output' if args.csv_cache else '-'),
+        ]
+
+    @localmethod('subcommand',
+                 choices=('execute', 'inspect',), default='execute', nargs='?',
+                 help="either execute command, or inspect state of system "
+                      "only, do not load applications (default: execute)")
+    @localmethod('-d', '--dry-run', action='store_true',
+                 help="do not commit database transactions so as to test effect "
+                      "of command")
+    def apps(self, args):
+        """map wufoo data into appy"""
+        return self.manage()[
+            'loadapps',
+            '-s', f'_{args.year}',
+            ('--dry-run' if args.dry_run else ()),
+            args.year,
+            args.subcommand,
         ]
 
 

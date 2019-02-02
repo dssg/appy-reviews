@@ -2,34 +2,20 @@ import argparse
 import datetime
 import sys
 
-from allauth.account.adapter import get_adapter
 from django.conf import settings
-from django.core.management.base import BaseCommand
 from django.db import connection
 from django.utils.safestring import mark_safe
+
+from . import APPLICANT_SURVEY_FIELDS, REFERENCE_FORM_URL
+from .base import UnbrandedEmailCommand
 
 
 APPLICANT_JESSE = ('Applicant Jesse', 'Applicant London', 'jesselondon@gmail.com')
 APPLICANT_RAYID = ('Applicant Rayid', 'Applicant Ghani', 'rayidghani@gmail.com')
 
 
-SURVEY_FIELDS = (
-    ('app_first', 'Field451'),
-    ('app_last', 'Field452'),
-    ('app_email', 'Field461'),
-    ('ref0_first', 'Field668'),
-    ('ref0_last', 'Field669'),
-    ('ref0_email', 'Field670'),
-    ('ref1_first', 'Field671'),
-    ('ref1_last', 'Field672'),
-    ('ref1_email', 'Field673'),
-)
-
 APPLICATION_FORM2_URL = ('https://datascience.wufoo.com/forms/'
                          '2019-dssg-fellowship-application-part-2/def/field461={app_email}')
-
-REFERENCE_FORM_URL = ('https://datascience.wufoo.com/forms/'
-                      '?formname=2019-dssg-fellow-recommendation-form&field461={app_email}')
 
 VALID_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
@@ -43,13 +29,9 @@ def valid_datetime(value):
     raise argparse.ArgumentTypeError(f"Invalid date: '{value}'.")
 
 
-class Command(BaseCommand):
+class Command(UnbrandedEmailCommand):
 
     help = "Send reminder emails to applicants or to applicants' references"
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.adapter = get_adapter(None)
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -61,10 +43,11 @@ class Command(BaseCommand):
         subparsers = parser.add_subparsers(dest='target')
         subparsers.required = True
 
+        applicants_description = 'remind applicants to complete their unfinished applications'
         applicants_parser = subparsers.add_parser(
             'applicant',
-            description='remind applicants to complete their applications',
-            help='remind applicants to complete their applications',
+            description=applicants_description,
+            help=applicants_description,
         )
         applicants_parser.add_argument(
             '-t', '--template',
@@ -73,10 +56,12 @@ class Command(BaseCommand):
                  "(default: review/email/applicant_reminder)",
         )
 
+        references_description = ('remind references to submit their letters '
+                                  '(whether submitted or not)')
         references_parser = subparsers.add_parser(
             'reference',
-            description='remind references to submit their letters',
-            help='remind references to submit their letters',
+            description=references_description,
+            help=references_description,
         )
         references_parser.add_argument(
             '-t', '--template',
@@ -112,6 +97,9 @@ class Command(BaseCommand):
                 if target == 'reference':
                     print("    emailing:", ' and '.join(ref[2] for ref in reminder_targets))
 
+            application_link = mark_safe(APPLICATION_FORM2_URL.format(app_email=app_email))
+            reference_link = mark_safe(REFERENCE_FORM_URL.format(app_email=app_email))
+
             for (target_first, target_last, target_email) in reminder_targets:
                 if not target_last or not target_email:
                     if target_first or target_last or target_email:
@@ -119,15 +107,15 @@ class Command(BaseCommand):
                               repr(app_first), repr(app_last), repr(app_email), file=sys.stderr)
                     continue
 
-                self.send_mail(
-                    template,
-                    target_email,
-                    target_first,
-                    target_last,
-                    app_email,
-                    app_first,
-                    app_last,
-                )
+                self.send_mail(template, target_email, {
+                    'applicant_first': app_first,
+                    'applicant_last': app_last,
+                    'target_first': target_first,
+                    'target_last': target_last,
+                    'application_link': application_link,
+                    'reference_link': reference_link,
+                    'program_year': settings.REVIEW_PROGRAM_YEAR,
+                })
 
     @staticmethod
     def stream_applicants(since=None, test=False):
@@ -143,11 +131,11 @@ class Command(BaseCommand):
 
         select_fields = ', '.join(
             f'survey_1."{field_name}" AS {label}'
-            for (label, field_name) in SURVEY_FIELDS[:3]
+            for (label, field_name) in APPLICANT_SURVEY_FIELDS[:3]
         )
         assert select_fields
 
-        (join_label, join_field) = SURVEY_FIELDS[2]
+        (join_label, join_field) = APPLICANT_SURVEY_FIELDS[2]
         assert join_label == 'app_email'
 
         with connection.cursor() as cursor:
@@ -188,22 +176,22 @@ class Command(BaseCommand):
             return
 
         select_fields = ', '.join(
-            f'"{field_name}" AS {label}'
-            for (label, field_name) in SURVEY_FIELDS
+            f'survey_1."{field_name}" AS {label}'
+            for (label, field_name) in APPLICANT_SURVEY_FIELDS
         )
         assert select_fields
 
+        statement = f"""\
+            SELECT {select_fields}
+            FROM survey_application_1_{settings.REVIEW_PROGRAM_YEAR} AS survey_1
+        """
+        if since is not None:
+            statement += f"""\
+                WHERE CAST(survey_1."DateCreated" as timestamp) > %s
+            """
+
         with connection.cursor() as cursor:
-            cursor.execute(
-                f"""\
-                    SELECT {select_fields} FROM survey_application_1_{settings.REVIEW_PROGRAM_YEAR}
-                """ + (
-                    f"""\
-                        WHERE CAST("DateCreated" as timestamp) > %s
-                    """ if since is not None else ''
-                ),
-                [since],
-            )
+            cursor.execute(statement, [since])
             for row in cursor:
                 yield (
                     row[:3],            # applicant info
@@ -212,30 +200,3 @@ class Command(BaseCommand):
                         row[6:],
                     ),
                 )
-
-    def send_mail(
-        self, template,
-        address, target_first, target_last,
-        app_email, app_first, app_last
-    ):
-        assert not hasattr(settings, 'ACCOUNT_EMAIL_SUBJECT_PREFIX')
-        try:
-            # NOTE: This could be done, perhaps better, a number of ways,
-            # such as configuring a special adapter, or not using the adapter at all.
-            # (The adapter in theory does some nice things, but really not required for this.)
-            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX = ''
-
-            self.adapter.send_mail(template, address, {
-                'applicant_first': app_first,
-                'applicant_last': app_last,
-                'target_first': target_first,
-                'target_last': target_last,
-                'application_link': mark_safe(APPLICATION_FORM2_URL.format(app_email=app_email)),
-                'reference_link': mark_safe(REFERENCE_FORM_URL.format(app_email=app_email)),
-                'program_year': settings.REVIEW_PROGRAM_YEAR,
-            })
-        finally:
-            try:
-                delattr(settings, 'ACCOUNT_EMAIL_SUBJECT_PREFIX')
-            except AttributeError:
-                pass

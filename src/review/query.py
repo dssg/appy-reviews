@@ -75,19 +75,23 @@ def apps_to_review(reviewer, *, application_id=None, limit=None,
                     order by field_title
                 ''',
                 {'field_titles': ('Application Reviews',
-                                  'Email')},
+                                  'Email',
+                                  'Interviews')},
             )
             (
                 (field_id_reviewer,),
                 (field_id_email,),
+                (field_id_interviewer,),
              ) = cursor
 
             cursor.execute(
                 f'''\
                     select 1
                     from "{SurveyTableName.reviewer}"
-                    where "{field_id_email}"=%(reviewer_email)s and
-                          "{field_id_reviewer}"!=''
+                    where "{field_id_email}" = %(reviewer_email)s and (
+                        "{field_id_reviewer}" is not null or
+                        "{field_id_interviewer}" is not null
+                    )
                 ''',
                 {'reviewer_email': reviewer.email},
             )

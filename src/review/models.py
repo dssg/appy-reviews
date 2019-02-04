@@ -337,6 +337,7 @@ class Application(models.Model):
     def __str__(self):
         return f'{self.applicant} ({self.program_year})'
 
+
 #
 # SurveyEntries
 #
@@ -450,9 +451,10 @@ class ApplicationReview(AbstractRating):
 
     class OverallRecommendation(SafeStrEnum):
 
-        interview = "Interview"
-        reject = "Reject"
+        interview = "Interview &ndash; definitely!"
+        maybe_interview = "Interview &hellip; maybe"
         only_if = "Interview <em>only</em> if you need a certain type of fellow (explain below)"
+        reject = "Reject"
 
     review_id = models.AutoField(primary_key=True)
     reviewer = models.ForeignKey('review.Reviewer',

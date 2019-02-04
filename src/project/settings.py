@@ -235,7 +235,6 @@ REVIEW_APPLICATION_FIELDS = {
     #           None,
     #       ),
     #       ...
-    # TODO: Check for remaining hold-overs from 2018
     'survey_application_1_2019': (
         'Location Preference', (
         ('Preference', ('Your Choice',)),
@@ -247,7 +246,7 @@ REVIEW_APPLICATION_FIELDS = {
     'survey_application_2_2019': (
         'Main', (
         ('Full Name', (('First', 0), ('Last', 0))),
-        ('Preferred Name\n', None),  # TODO: ensure that ETL strips whitespace from field titles
+        ('Preferred Name', None),
         ('Email', None),
         ('Locale', ('City', 'State / Province / Region', 'Country')),
         ('Citizenship and Visa Status for US and UK', None),
@@ -271,15 +270,7 @@ REVIEW_APPLICATION_FIELDS = {
         ('Visualization', None),
         ('Python', None),
         ('C/C++/C#/Java', None),
-        ('R', None),
-        ('Matlab', None),
-        ('SAS', None),
-        ('SPSS', None),
-        ('Stata', None),
-        ('Julia', None),
-        ('SQL', None),
-        ('GIS tools', None),
-        ('Other', None),  # TODO: confirm that these "Other"s come through
+        ('Other', [('Other', 0)]),
         ('Programming Experience', (
             '''Tell us more about your programming experience. '''
             '''What projects have you worked on, what was your role, and '''
@@ -288,6 +279,15 @@ REVIEW_APPLICATION_FIELDS = {
             '''you need some coding experience. We want to know more about '''
             '''your skills so we can create the right teams  for each project.''',
         )),
+        ('R', None),
+        ('SQL', None),
+        ('GIS tools', None),
+        ('Matlab', None),
+        ('SAS', None),
+        ('SPSS', None),
+        ('Stata', None),
+        ('Julia', None),
+        ('Other', [('Other', 1)]),
         ('Analysis Experience', (
             '''Tell us more about projects you have done with data analysis. \n'''
             '''What tools did you use?\n'''
@@ -296,7 +296,7 @@ REVIEW_APPLICATION_FIELDS = {
             '''Did it come from multiple sources?\n'''
             '''How did you store it?\n'''
             '''Where did the output of the analysis go and how was it used '''
-            '''(thesis, report, use of the analysis)? ''',
+            '''(thesis, report, use of the analysis)?''',
         )),
         ('Regression Models', None),
         ('Decision Trees', None),
@@ -307,6 +307,7 @@ REVIEW_APPLICATION_FIELDS = {
         ('Unsupervised models', None),
         ('Semi-Supervised models', None),
         ('Graphical models', None),
+        ('Other', [('Other', 2)]),
         ('Modeling/machine-learning experience', (
             '''Tell us more about your experience with modeling and machine '''
             '''learning algorithms and methods. \n\n'''
@@ -316,17 +317,18 @@ REVIEW_APPLICATION_FIELDS = {
             '''- What was the goal of the project?\n'''
             '''- What did you do?\n'''
             '''- How were the results used?\n'''
-            '''- Did anyone else have to use your work? ''',
+            '''- Did anyone else have to use your work?''',
         )),
         ('Causal inference', None),
         ('Matching (e.g., Propensity Score Matching )', None),
         ('Instrumental Variables', None),
         ('Regression Discontinuity', None),
         ('Natural Experiments', None),
+        ('Other', [('Other', 3)]),
         ('Social science experience', (
             '''Tell us more about your experience with quantitative social '''
             '''science methods. What methods have you used? What was the '''
-            '''goal of the work you were doing? How were the results used? ''',
+            '''goal of the work you were doing? How were the results used?''',
         )),
         ('Data in Text Files', None),
         ('Data in Relational Databases', None),
@@ -336,6 +338,7 @@ REVIEW_APPLICATION_FIELDS = {
         ('Data from Sensors', None),
         ('Data > 1TB', None),
         ('Geospatial', None),
+        ('Other', [('Other', 4)]),
         ('Data experience', (
             '''Tell us more about your experience using data. What type of '''
             '''data are you most experienced and comfortable with? \n\n'''
@@ -360,16 +363,27 @@ REVIEW_APPLICATION_FIELDS = {
             '''Link to your GitHub Account, if you have one (or a code sample '''
             '''that is online)''',
         )),
-        ('Education', None),
-        ('Health', None),
-        ('Energy', None),
-        ('Environment', None),
-        ('Transportation', None),
-        ('Poverty', None),
-        ('Housing/Land Use', None),
-        ('Public Safety', None),
-        ('International Development', None),
-        ('Other', None),
+        ('Experienced in working on problems related to: Education', [('Education', 0)]),
+        ('...Health', [('Health', 0)]),
+        ('...Energy', [('Energy', 0)]),
+        ('...Environment', [('Environment', 0)]),
+        ('...Transportation', [('Transportation', 0)]),
+        ('...Poverty', [('Poverty', 0)]),
+        ('...Housing/Land Use', [('Housing/Land Use', 0)]),
+        ('...Public Safety', [('Public Safety', 0)]),
+        ('...International Development', [('International Development', 0)]),
+        ('...Other', [('Other', 5)]),
+        ('Interested in working on problems related to: Education', [('Education', 1)]),
+        ('...Health', [('Health', 1)]),
+        ('...Energy', [('Energy', 1)]),
+        ('...Environment', [('Environment', 1)]),
+        ('...Transportation', [('Transportation', 1)]),
+        ('...Poverty', [('Poverty', 1)]),
+        ('...Housing/Land Use', [('Housing/Land Use', 1)]),
+        ('...Public Safety', [('Public Safety', 1)]),
+        ('...International Development', [('International Development', 1)]),
+        ('...Other', [('Other', 6)]),
+        ('Other', ('Other:',)),
         ('Motivation / public sector experience', (
             '''What is it about ‘social good’ work that you find compelling? '''
             '''Tell us about your past experiences working in (or with) the '''
@@ -407,9 +421,9 @@ REVIEW_APPLICATION_FIELDS = {
             '''Please attach your resume or CV as an additional Word, PDF, '''
             '''or text document.''',
         )),
-        ('University Housing requested', (
-            '''I would like to be considered for a space in University Housing''',
-        )),
+        # ('University Housing requested', (
+        #     '''I would like to be considered for a space in University Housing''',
+        # )),
         ('Interested in DSaPP', (
             '''I am currently available and interested in a post-summer '''
             '''job opportunity at UChicago Center for Data Science and '''

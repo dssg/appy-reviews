@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth import models as auth_models
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
+from django.contrib.postgres.fields import CIEmailField
 from django.core.mail import send_mail
 from django.db import connection, models
 from django.db.models import fields
@@ -210,7 +211,7 @@ class ReviewerManager(BaseUserManager):
 class Reviewer(AbstractBaseUser, PermissionsMixin):
 
     reviewer_id = models.AutoField(primary_key=True)
-    email = models.EmailField(
+    email = CIEmailField(
         'email address',
         unique=True,
         error_messages={
@@ -241,6 +242,7 @@ class Reviewer(AbstractBaseUser, PermissionsMixin):
 
     class Meta:
         db_table = 'reviewer'
+        ordering = ('email',)
 
     objects = ReviewerManager()
 
@@ -269,6 +271,41 @@ class Reviewer(AbstractBaseUser, PermissionsMixin):
     @property
     def is_staff(self):
         return self.trusted
+
+    @cachedproperty
+    def concession(self):
+        try:
+            return ReviewerConcession.objects.get(
+                reviewer=self,
+                program_year=settings.REVIEW_PROGRAM_YEAR,
+            )
+        except ReviewerConcession.DoesNotExist:
+            return None
+
+
+class ReviewerConcession(models.Model):
+
+    reviewer_concession_id = models.AutoField(primary_key=True)
+    program_year = models.IntegerField()
+    reviewer = models.ForeignKey('review.Reviewer',
+                                 on_delete=models.CASCADE,
+                                 related_name='+')
+    is_reviewer = models.BooleanField(default=False)
+    is_interviewer = models.BooleanField(default=False)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'reviewer_concession'
+        ordering = ('-program_year', 'reviewer')
+        unique_together = ('program_year', 'reviewer')
+
+    def __str__(self):
+        return ' and '.join(
+            label for (label, condition) in (
+                ('reviewer', self.is_reviewer),
+                ('interviewer', self.is_interviewer),
+            ) if condition
+        ) + f' ({self.program_year})'
 
 
 #

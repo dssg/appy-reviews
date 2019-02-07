@@ -1,3 +1,5 @@
+import os
+
 from allauth.account.adapter import get_adapter
 from allauth.account.models import EmailAddress, EmailConfirmationHMAC
 from django.conf import settings
@@ -6,6 +8,9 @@ from django.db import IntegrityError
 from django.urls import reverse
 
 from review.models import Reviewer
+
+
+SLACK_URL = os.getenv('SLACK_URL', None)
 
 
 class Command(LabelCommand):
@@ -22,7 +27,7 @@ class Command(LabelCommand):
         parser.add_argument(
             '-c', '--create',
             action='store_true',
-            help="create reviewer(s) with given email address(es)",
+            help="create reviewer(s) with given email address(es) as necessary",
         )
         parser.add_argument(
             '-f', '--force',
@@ -41,13 +46,16 @@ class Command(LabelCommand):
         return output + '\ndone' if output else 'done'
 
     def handle_label(self, email, create, force, template, **_options):
+        reviewer = None
+
         try:
             if create:
                 try:
                     reviewer = Reviewer.objects.create_reviewer(email, None)
                 except IntegrityError:
-                    raise CommandError(f'{email}: reviewer already exists')
-            else:
+                    pass
+
+            if not reviewer:
                 try:
                     reviewer = Reviewer.objects.get(email=email)
                 except Reviewer.DoesNotExist:
@@ -71,7 +79,7 @@ class Command(LabelCommand):
                 email=reviewer.email,
             )
 
-        site_url = 'http://' + settings.CANONICAL_HOST
+        site_url = 'https://' + settings.CANONICAL_HOST
         if email_address.verified:
             activate_url = site_url + '/'
         else:
@@ -84,5 +92,6 @@ class Command(LabelCommand):
             'activate_url': activate_url,
             'domain': settings.CANONICAL_HOST,
             'program_year': settings.REVIEW_PROGRAM_YEAR,
+            'slack_url': SLACK_URL,
             'verified': email_address.verified,
         })

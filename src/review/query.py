@@ -1,29 +1,29 @@
-import enum
-
 from django.conf import settings
-from django.db import connection
 from django.db.models import Count
 
 from review import models
 
 
-class SurveyTableName(str, enum.Enum):
-    """str-Enum of survey table names"""
-
-    reviewer = 'survey_reviewer_{REVIEW_PROGRAM_YEAR}'
-    reviewer_fields = 'survey_reviewer_fields_{REVIEW_PROGRAM_YEAR}'
-
-    def __format__(self, spec):
-        return self.__str__().__format__(spec)
-
-    def __str__(self):
-        return self.value.format(
-            REVIEW_PROGRAM_YEAR=settings.REVIEW_PROGRAM_YEAR,
-        )
-
-
 class UnexpectedReviewer(LookupError):
     pass
+
+
+def unordered_reviewable_apps():
+    """Base QuerySet of Applications available for review."""
+    return models.Application.objects.annotate(
+        # extend query with these for filtering/ordering
+        page_count=Count('applicationpage', distinct=True),
+    ).filter(
+        # only consider applications ...
+        # ... for this program year
+        program_year=settings.REVIEW_PROGRAM_YEAR,
+        # ... which the applicant completed
+        page_count=settings.REVIEW_SURVEY_LENGTH,
+        # ... which we haven't culled
+        review_decision=True,
+        # ... which the applicant has not withdrawn
+        withdrawn=None,
+    )
 
 
 def apps_to_review(reviewer, *, application_id=None, limit=None,
@@ -35,93 +35,21 @@ def apps_to_review(reviewer, *, application_id=None, limit=None,
     to construct a typical QuerySet without special ordering.
 
     """
-    #
     # Test that reviewer can help with application reviews
-    #
-    # (For the moment, simply using data collected from wufoo;
-    # perhaps next year we'll gather this upon registration.)
-    #
-    #
-    # FIXME: As of yet we have no such survey_reviewer_2019 table.
-    #
-    # We still probably want some check somewhere (either here or at time of sign-up).
-    # Easiest would probably be a simple table (which could even be populated in the future from survey data if that's needed):
-    #
-    #     reviewer_allowed
-    #
-    #     year | email
-    #     ----------------------------
-    #     2018 | jesselondon@gmail.com
-    #     2018 | rayidghani@gmail.com
-    #     …
-    #     2019 | rayidghani@gmail.com
-    #     …
-    #
-    #     unique key: (year, email)
-    #
-    # (The year column would allow easy look-up into the future.)
-    # (The email column would allow this table to be populated before a person has signed up; and, then the table could be used at either juncture.)
-    #
-    # Note: As elsewhere, will have to be careful about email character casing.
-    # (May make sense to use CIEmailField ... everywhere, but at least in the new table above.)
-    #
-    if settings.REVIEW_REVIEWER_APPROVED:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                f'''\
-                    select field_id
-                    from "{SurveyTableName.reviewer_fields}"
-                    where field_title in %(field_titles)s
-                    order by field_title
-                ''',
-                {'field_titles': ('Application Reviews',
-                                  'Email',
-                                  'Interviews')},
-            )
-            (
-                (field_id_reviewer,),
-                (field_id_email,),
-                (field_id_interviewer,),
-             ) = cursor
-
-            cursor.execute(
-                f'''\
-                    select 1
-                    from "{SurveyTableName.reviewer}"
-                    where "{field_id_email}" = %(reviewer_email)s and (
-                        "{field_id_reviewer}" is not null or
-                        "{field_id_interviewer}" is not null
-                    )
-                ''',
-                {'reviewer_email': reviewer.email},
-            )
-            try:
-                (result,) = next(iter(cursor))
-            except StopIteration:
-                if reviewer.email not in settings.REVIEW_WHITELIST:
-                    raise UnexpectedReviewer
-            else:
-                assert result
+    if settings.REVIEW_REVIEWER_APPROVED and reviewer.email not in settings.REVIEW_WHITELIST and (
+        not reviewer.concession or (
+            not reviewer.concession.is_reviewer and
+            not reviewer.concession.is_interviewer
+        )
+    ):
+        raise UnexpectedReviewer
 
     # Return stream of applications appropriate to reviewer,
     # optionally ordered by appropriateness
 
     if not ordered:
         # This is the QuerySet we want, using Django's ORM:
-        applications = models.Application.objects.annotate(
-            # extend query with these for filtering/ordering
-            page_count=Count('applicationpage', distinct=True),
-        ).filter(
-            # only consider applications ...
-            # ... for this program year
-            program_year=settings.REVIEW_PROGRAM_YEAR,
-            # ... which the applicant completed
-            page_count=settings.REVIEW_SURVEY_LENGTH,
-            # ... which we haven't culled
-            review_decision=True,
-            # ... which the applicant has not withdrawn
-            withdrawn=None,
-        )
+        applications = unordered_reviewable_apps()
 
         if application_id:
             applications = applications.filter(application_id=application_id)

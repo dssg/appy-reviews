@@ -289,6 +289,7 @@ class ReviewerConcession(models.Model):
     program_year = models.IntegerField()
     reviewer = models.ForeignKey('review.Reviewer',
                                  on_delete=models.CASCADE,
+                                 related_query_name='concessions',
                                  related_name='+')
     is_reviewer = models.BooleanField(default=False)
     is_interviewer = models.BooleanField(default=False)

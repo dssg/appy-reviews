@@ -54,7 +54,8 @@ class Command(BaseCommand):
             metavar='path',
             nargs='?',
             help="Path to a directory into which to write CSV file output (optional). "
-                 "When path is -, will instead use standard input/output to write to the database.",
+                 "When path is -, will instead use standard input/output to write to "
+                 "the database.",
         )
         parser.add_argument(
             '-f', '--filter',
@@ -151,36 +152,67 @@ class Command(BaseCommand):
                 table_names = [table_name + f'_{table_suffix}'
                                for table_name in table_names]
 
-            for (table_name, data_path, stream, table_apply_pk) in zip(table_names, data_paths, streams, (apply_pk, False)):
+            table_col_defns = [
+                # entries table columns
+                ', '.join(
+                    (
+                        f'"{field_name}" ' +
+                        ('citext' if re.search(r'^Field\d+$', field_name) else 'varchar')
+                    )
+                    for field_name in head
+                ),
+
+                # fields table columns
+                '"field_id" varchar, "field_title" varchar',
+            ]
+
+            for (table_name, table_col_defn, data_path, stream, table_apply_pk) in zip(
+                    table_names, table_col_defns, data_paths, streams, (apply_pk, False)):
+                table_name_tmp = f'{table_name}_tmp'
+
                 with connection.cursor() as cursor:
                     cursor.execute(f"select to_regclass('{table_name}')")
                     (result,) = cursor.fetchone()
                     table_exists = bool(result)
 
+                direct_write = append or not table_exists
+
                 load_command = csvsql[
                     '--db', settings.DATABASE_URL,
-                    '--table', table_name,
                     '--insert',
+                    '--no-create',
                     '--no-constraints',
-                    '--db-schema', settings.DATABASE_SCHEMA,
                     '--no-inference',  # inference incorrectly truncates and
                                        # casts document URIs to date
                 ]
 
-                if table_exists:
-                    if append:
-                        load_command = load_command['--no-create']
-                    else:
-                        self.report("tearing down existing database table:", table_name)
+                if direct_write:
+                    load_command = load_command[
+                        '--table', table_name,
+                        '--db-schema', settings.DATABASE_SCHEMA,
+                    ]
+                else:
+                    load_command = load_command[
+                        '--table', table_name_tmp,
+                    ]
 
-                        # Tear down existing table first
-                        with connection.cursor() as cursor:
-                            cursor.execute(f'drop table "{table_name}"')
+                    self.execute_sql(f'create table {table_name_tmp} '
+                                     f'({table_col_defn})',
+                                     "creating temporary table", table_name_tmp)
+
+                if not table_exists:
+                    self.execute_sql(f'create table {settings.DATABASE_SCHEMA}.{table_name} '
+                                     f'({table_col_defn})')
+
+                    if table_apply_pk:
+                        self.execute_sql(f'alter table "{table_name}" '
+                                         f'add primary key ("{entity_id_field}")')
 
                 if data_path:
                     load_command(data_path)
                 else:
-                    self.report("streaming to database table:", table_name)
+                    self.report("streaming to database table:", (table_name if direct_write
+                                                                 else table_name_tmp))
                     load_process = load_command.popen(
                         '-',
                         stdin=subprocess.PIPE,
@@ -194,10 +226,35 @@ class Command(BaseCommand):
                         load_process.kill()
                         raise
 
-                if table_apply_pk and not (table_exists and append):
-                    with connection.cursor() as cursor:
-                        cursor.execute(f'alter table "{table_name}" '
-                                       f'add primary key ("{entity_id_field}")')
+                if not direct_write:
+                    try:
+                        self.execute_sql('begin')
+
+                        if table_exists:
+                            self.execute_sql(f'truncate table only {table_name}')
+
+                        self.execute_sql(f'insert into {table_name} '
+                                         f'select * from {table_name_tmp}')
+
+                        self.execute_sql(f'drop table {table_name_tmp}')
+                    except BaseException:
+                        try:
+                            self.execute_sql('rollback')
+                        except BaseException:
+                            pass
+
+                        raise
+                    else:
+                        self.execute_sql('commit')
+
+    def execute_sql(self, sql, *comments):
+        if comments:
+            self.report(*comments, minlevel=3)
+
+        self.report(sql, minlevel=3)
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql)
 
     def report(self, *contents, minlevel=2):
         if self.verbosity >= minlevel:
@@ -207,7 +264,10 @@ class Command(BaseCommand):
         writer = csv.DictWriter(outfile, tuple(head))
         writer.writeheader()
         for (count, entry) in enumerate(entries, 1):
-            writer.writerow(entry)
+            writer.writerow({
+                key: (value.strip() if isinstance(value, str) else value)
+                for (key, value) in entry.items()
+            })
 
         self.report("\twriting entries:", count)
 
@@ -216,8 +276,6 @@ class Command(BaseCommand):
         writer.writerow(['field_id', 'field_title'])
         for (count, (field_id, field_title)) in enumerate(fields, 1):
             if field_id and field_id in head:
-                # TODO: test that preferred name stripped correctly
-                # (and update settings: test against 1795)
                 writer.writerow([field_id, field_title.strip()])
 
         self.report("\twriting fields:", count)

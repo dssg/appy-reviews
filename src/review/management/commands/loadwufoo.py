@@ -101,6 +101,11 @@ class Command(BaseCommand):
             action='store_true',
             help="Append rows to any existing database tables (rather than overwrite).",
         )
+        parser.add_argument(
+            '--recreate',
+            action='store_true',
+            help="Recreate table schema rather than merely truncating and repopulating.",
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -109,6 +114,7 @@ class Command(BaseCommand):
     def handle(self, target='.', filters=(), write_to_db=True,
                apply_suffix=True, suffix=None, append=False,
                entity_id_field='EntryId', apply_pk=True,
+               recreate=False,
                verbosity=1, **_options):
         self.verbosity = verbosity
 
@@ -191,6 +197,11 @@ class Command(BaseCommand):
                         '--table', table_name,
                         '--db-schema', settings.DATABASE_SCHEMA,
                     ]
+
+                    if recreate and table_exists:
+                        # tear down old table
+                        self.execute_sql(f'drop table "{table_name}"')
+                        table_exists = False
                 else:
                     load_command = load_command[
                         '--table', table_name_tmp,
@@ -231,7 +242,21 @@ class Command(BaseCommand):
                         self.execute_sql('begin')
 
                         if table_exists:
-                            self.execute_sql(f'truncate table only {table_name}')
+                            if recreate:
+                                # tear down old table
+                                self.execute_sql(f'drop table "{table_name}"')
+
+                                # set up new table
+                                self.execute_sql(
+                                    f'create table {settings.DATABASE_SCHEMA}.{table_name} '
+                                    f'({table_col_defn})'
+                                )
+
+                                if table_apply_pk:
+                                    self.execute_sql(f'alter table "{table_name}" '
+                                                     f'add primary key ("{entity_id_field}")')
+                            else:
+                                self.execute_sql(f'truncate table only {table_name}')
 
                         self.execute_sql(f'insert into {table_name} '
                                          f'select * from {table_name_tmp}')

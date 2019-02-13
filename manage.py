@@ -370,7 +370,7 @@ class Etl(DbLocal):
             'loadapps',
             '-s', f'_{args.year}',
             ('--dry-run' if args.dry_run else ()),
-            args.year,
+            '--year', args.year,
             args.subcommand,
         ]
 

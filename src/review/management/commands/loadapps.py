@@ -1,4 +1,6 @@
 from allauth.account.models import EmailAddress
+from django.conf import settings
+from django.core import management
 from django.core.management.base import BaseCommand
 from django.db import connection, transaction
 from terminaltables import AsciiTable
@@ -26,8 +28,9 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             '-s', '--suffix',
-            default='',
+            default=f'_{settings.REVIEW_PROGRAM_YEAR}',
             help="Suffix to apply to the names of survey tables from which command should read. "
+                 f"Default: _{settings.REVIEW_PROGRAM_YEAR}. "
                  "E.g.: If the first page of application survey data has been loaded into "
                  "table \"survey_application_1_2018\", then specify \"_2018\".",
         )
@@ -45,11 +48,11 @@ class Command(BaseCommand):
             help="Treat the fellow application submission period as closed -- "
                  "no fellow applications will be loaded.",
         )
-        # FIXME: year should perhaps come from survey data
         parser.add_argument(
-            'year',
+            '-y', '--year',
+            default=settings.REVIEW_PROGRAM_YEAR,
             type=int,
-            help="Program year",
+            help=f"Program year (default: {settings.REVIEW_PROGRAM_YEAR})",
         )
         parser.add_argument(
             'subcommand',
@@ -219,7 +222,12 @@ class Command(BaseCommand):
                     reviewer=reviewer,
                     defaults=reviewer_election,
                 )
-                concessions_created += int(created)
+
+            if created:
+                if concession.is_reviewer or concession.is_interviewer:
+                    management.call_command('sendinvite', reviewer_email)
+
+                concessions_created += 1
 
         self.write_table([
             ('entity', 'processed', 'written'),

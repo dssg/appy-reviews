@@ -98,6 +98,9 @@ INSTALLED_APPS = [
     # 'allauth.socialaccount.providers.trello',
     # 'allauth.socialaccount.providers.twitter',
     #
+
+    'django_tables2',
+
     # django-mathfilters
     'mathfilters',
 

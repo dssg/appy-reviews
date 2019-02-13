@@ -13,6 +13,9 @@
         <i title="Trusted User" class="em-svg em-tophat"></i>
         {% endif %}
     </li>
+    {% if user.trusted %}
+    <li><a href="{% url 'report' %}">Reports</a></li>
+    {% endif %}
     {# <li><a href="{% url 'account_email' %}">Change E-mail</a></li> #}
     <li><a href="{% url 'account_logout' %}">Sign Out</a></li>
     {% else %}

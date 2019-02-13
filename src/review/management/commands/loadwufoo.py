@@ -107,6 +107,13 @@ class Command(BaseCommand):
             help="Recreate table schema rather than merely truncating and repopulating.",
         )
 
+        parser.add_argument(
+            '--stage',
+            choices=('application', 'review'),
+            help="Load a configuration preset depending on whether the "
+                 "application period is still open or applications are now under review.",
+        )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.verbosity = None
@@ -114,9 +121,23 @@ class Command(BaseCommand):
     def handle(self, target='.', filters=(), write_to_db=True,
                apply_suffix=True, suffix=None, append=False,
                entity_id_field='EntryId', apply_pk=True,
-               recreate=False,
+               recreate=False, stage=None,
                verbosity=1, **_options):
         self.verbosity = verbosity
+
+        if stage == 'application':
+            filters.append(f'^{settings.REVIEW_PROGRAM_YEAR} ')
+            if target == '.':
+                target = '-'
+        elif stage == 'review':
+            filters.extend((
+                f'^{settings.REVIEW_PROGRAM_YEAR} ',
+                'reviewer registration|fellow recommendation',
+            ))
+            if target == '.':
+                target = '-'
+        elif stage is not None:
+            raise CommandError('unexpected stage argument', stage)
 
         if target == '-' and not write_to_db:
             raise CommandError("Can only write to standard I/O without database – nothing to do")

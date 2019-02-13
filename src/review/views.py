@@ -13,8 +13,9 @@ from django.shortcuts import redirect, get_object_or_404
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods
+from django_tables2 import RequestConfig
 
-from review import models, query
+from review import models, query, reports
 
 
 RATING_FIELDS = models.ApplicationReview.rating_fields()
@@ -122,6 +123,7 @@ def index(request):
 
 @require_GET
 @login_required
+@unexpected_review
 def list_applications(request, content_type='html'):
     if content_type != 'json':
         raise NotImplementedError
@@ -314,6 +316,33 @@ def review_interview(request, assignment_id):
                                  assignment.InterviewRound.round_two
                               else None),
         'rating_fields': RATING_FIELDS,
+    })
+
+
+REPORT_TABLES = (
+    ('app_review', reports.application_review_table),
+    ('app_recommendation', reports.application_recommendation_table),
+    ('reviewer_review', reports.reviewer_review_table),
+)
+
+
+@require_GET
+@login_required
+def report(request):
+    if not request.user.trusted:
+        return http.HttpResponseForbidden("Forbidden")
+
+    report_tables = [
+        report_getter(prefix=f'{report_key}_')
+        for (report_key, report_getter) in REPORT_TABLES
+    ]
+    table_config = RequestConfig(request)
+    for report_table in report_tables:
+        table_config.configure(report_table)
+
+    return TemplateResponse(request, 'review/report.html', {
+        'program_year': settings.REVIEW_PROGRAM_YEAR,
+        'reports': report_tables,
     })
 
 

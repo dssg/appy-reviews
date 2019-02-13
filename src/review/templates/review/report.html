@@ -1,0 +1,49 @@
+{% extends "review/site.html" %}
+{% load render_table from django_tables2 %}
+
+{% block title %}
+DSSG {{ program_year }} Application Review Reporting
+{% endblock %}
+
+{% block head %}
+<style>
+    .reports .table-container table {
+        border-collapse: collapse;
+    }
+    .reports .table-container td, .reports .table-container th {
+        padding: 0.2em;
+    }
+    .reports .table-container tr.odd {
+        background-color: #eaeaea;
+    }
+    .reports .table-container tfoot {
+        border-top: 1px solid #c1c1c1;
+    }
+
+    ul.pagination {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    ul.pagination li {
+        display: inline;
+        margin-right: 0.3em;
+    }
+    ul.pagination li:last-child {
+        margin-right: 0;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+    <h2>DSSG {{ program_year }} Application Review Reporting</h2>
+
+    <div class="reports">
+    {% for report_table in reports %}
+    <h3>{{ report_table.title }}</h3>
+    {% render_table report_table %}
+    {% endfor %}
+    </div>
+    
+{% endblock %}

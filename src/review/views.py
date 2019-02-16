@@ -1,4 +1,5 @@
 import functools
+import itertools
 import urllib
 
 import allauth.account.views
@@ -20,6 +21,8 @@ from review import models, query, reports
 
 RATING_FIELDS = models.ApplicationReview.rating_fields()
 RATING_NAMES = tuple(RATING_FIELDS)
+
+INTERVIEW_QUESTION_NAMES = tuple(models.InterviewReview.question_field_names())
 
 
 class RatingWidget(forms.RadioSelect):
@@ -55,6 +58,23 @@ class ReviewForm(forms.ModelForm):
             in self._meta.model.OverallRecommendation.__members__.items()
         ]
 
+    def visible_field_groups(self):
+        visible_fields = self.visible_fields()
+
+        try:
+            field_group_texts = self._meta.model.field_group_texts
+        except AttributeError:
+            return [(None, visible_fields)]
+
+        field_group_stream = itertools.groupby(visible_fields,
+                                               lambda field: field_group_texts[field.name])
+
+        # cannot return exhaustible generators to templates, so construct lists
+        return [
+            (group_text, list(field_group))
+            for (group_text, field_group) in field_group_stream
+        ]
+
 
 class ApplicationReviewForm(ReviewForm):
 
@@ -87,7 +107,7 @@ class InterviewReviewForm(ReviewForm):
 
     class Meta:
         model = models.InterviewReview
-        fields = RATING_NAMES + (
+        fields = INTERVIEW_QUESTION_NAMES + RATING_NAMES + (
             'overall_recommendation',
             'comments',
             'candidate_rank',
@@ -139,7 +159,8 @@ def list_applications(request, content_type='html'):
             #
             # These could -- and perhaps simply should -- be configured in settings.
             #
-            # Alternatively, (though not *great*), could look these up, assuming applicant's are the first listed:
+            # Alternatively, (though not *great*), could look these up, assuming applicant's
+            # are the first listed:
             #
             #     select field_id from (
             #         select distinct on (2) field_id, lower(field_title)

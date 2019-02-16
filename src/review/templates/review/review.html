@@ -38,6 +38,7 @@
         }
         #review textarea {
             max-width: 100%;
+            width: 100%;
         }
         #review input[type=submit] {
             font-size: x-large;
@@ -66,6 +67,14 @@
             text-align: left;
         }
 
+        #review fieldset legend.group-text {
+            font-size: large;
+        }
+        #review li.field-group {
+            margin-top: 1em;
+            padding-right: 0;
+        }
+
         @media screen and (min-width: 800px) {
             .column-content, .sidebar-scroll {
                 margin-bottom: 0;
@@ -78,6 +87,20 @@
                 display: none;
             }
         }
+
+        {% if review_type == 'interview' %}
+        .column-rail-left {
+            width: 400px;
+        }
+        @media screen and (min-width: 800px) {
+            .column-container {
+                padding-left: 420px;
+            }
+            .column-rail-left {
+                margin-left: -420px;
+            }
+        }
+        {% endif %}
 
         /* end review */
 
@@ -160,26 +183,22 @@
 {% block body %}
     <h1>{% include "review/includes/review-title.html" %}</h1>
 
+    {# TODO: "to the top" link #}
+
     {% if review_type == 'application' %}
     <p>
         {% include "review/includes/submission-count-message.html" with count=review_count only %}
     </p>
-    {% endif %}
-
-    {# TODO: "to the top" link #}
 
     <h2>How to review</h2>
 
-    {% if review_type == 'application' %}
     <p>
         Review the <a href="#section-application">application</a> below, which consists
         of the applicant's submissions and as many as two <a href="#section-references">references</a>.
     </p>
-    {% endif %}
 
     <p>
-        Based on your {% if review_type == 'interview' %}candidate interview{% else %}review{% endif %},
-        complete the <a href="#section-review">{% if review_type == 'interview' %}interview {% endif %}review form</a>.
+        Based on your review, complete the <a href="#section-review">review form</a>.
 
         {% if user.trusted %}
         You're a <strong>trusted</strong> reviewer; so, only the overall recommendation is required.
@@ -188,8 +207,22 @@
         {% endif %}
     </p>
 
-    {% if review_type == 'application' %}
     <p>Keep in mind that 20% of applicants will move to the interview round.</p>
+
+    {% elif review_type == 'interview' %}
+    <h2>How to interview</h2>
+
+    <p>
+        Before the interview, review the questions in the <a href="#section-review">interview review form</a>.
+    </p>
+
+    <p>
+        Structure your interview such that you'll be able to answer these questions afterwards.
+    </p>
+
+    <p>
+        Then, based on your candidate interview, complete the form.
+    </p>
     {% endif %}
 
     <h4>Ratings</h4>
@@ -305,7 +338,7 @@
 
     <div class="column-container">
     <section id="section-review" class="column-rail-left sidebar-scroll sticky">
-        <h2>Review</h2>
+        <h2>{% if review_type == 'interview' %}Interview review{% else %}Review{% endif %}</h2>
 
         <form id="review" method="post" action="{{ request.path }}">
             {{ review_form.non_field_errors }}
@@ -313,36 +346,27 @@
             {% csrf_token %}
 
             <ul class="basic">
-                {% for review_field in review_form.visible_fields %}
-                <li>
-                    {% if review_field.field.widget.input_type == 'radio' %}
-                    {% with is_rating=review_field.field.widget.is_rating %}
-                    <fieldset{% if is_rating %} class="rating"{% endif %}>
-                        <legend>{{ review_field.label }}</legend>
-
-                        {{ review_field.errors }}
-
-                        {% if is_rating %}
-                        {% for rating_option in review_field %}
-                        <label title="{{ rating_option.choice_label }}" for="{{ rating_option.id_for_label }}">
-                            {{ rating_option.tag }}
-                        </label>
+                {% for group_text, review_field_group in review_form.visible_field_groups %}
+                    {% if group_text == None %}
+                        {% for review_field in review_field_group %}
+                            <li>
+                            {% include "review/includes/review_form_field.html" with review_field=review_field only %}
+                            </li>
                         {% endfor %}
-                        {% else %}
-                        {{ review_field }}
-                        {% endif %}
-                    </fieldset>
-                    {% endwith %}
                     {% else %}
-                    {{ review_field.errors }}
-                    {% if review_field.help_text %}
-                    <label for="{{ review_field.id_for_label }}">{{ review_field.help_text }}</label>
-                    {% else %}{{ review_field.label_tag }}
+                    <li class="field-group">
+                        <fieldset>
+                            <legend class="group-text">{{ group_text }}</legend>
+                            <ul class="basic">
+                            {% for review_field in review_field_group %}
+                                <li>
+                                {% include "review/includes/review_form_field.html" with review_field=review_field only %}
+                                </li>
+                            {% endfor %}
+                            </ul>
+                        </fieldset>
+                    </li>
                     {% endif %}
-                    {% if review_field.field.widget.input_type != 'checkbox' %}<br>{% endif %}
-                    {{ review_field }}
-                    {% endif %}
-                </li>
                 {% endfor %}
             </ul>
 

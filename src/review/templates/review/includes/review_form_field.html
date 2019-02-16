@@ -1,0 +1,27 @@
+                    {% if review_field.field.widget.input_type == 'radio' %}
+                    {% with is_rating=review_field.field.widget.is_rating %}
+                    <fieldset{% if is_rating %} class="rating"{% endif %}>
+                        <legend>{{ review_field.label }}</legend>
+
+                        {{ review_field.errors }}
+
+                        {% if is_rating %}
+                        {% for rating_option in review_field %}
+                        <label title="{{ rating_option.choice_label }}" for="{{ rating_option.id_for_label }}">
+                            {{ rating_option.tag }}
+                        </label>
+                        {% endfor %}
+                        {% else %}
+                        {{ review_field }}
+                        {% endif %}
+                    </fieldset>
+                    {% endwith %}
+                    {% else %}
+                    {{ review_field.errors }}
+                    {% if review_field.help_text %}
+                    <label for="{{ review_field.id_for_label }}">{{ review_field.help_text }}</label>
+                    {% else %}{{ review_field.label_tag }}
+                    {% endif %}
+                    {% if review_field.field.widget.input_type != 'checkbox' %}<br>{% endif %}
+                    {{ review_field }}
+                    {% endif %}

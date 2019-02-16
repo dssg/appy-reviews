@@ -12,7 +12,7 @@ from django.db import connection, models
 from django.db.models import fields
 from django.utils import datastructures, safestring, timezone
 
-from descriptors import cachedproperty
+from descriptors import cachedproperty, cachedclassproperty
 
 
 class StrEnum(str, enum.Enum):
@@ -537,7 +537,147 @@ class ApplicationReview(AbstractRating):
                 f'{self.overall_recommendation}')
 
 
-class InterviewReview(AbstractRating):
+class AbstractQuestionGroup(models.Model):
+
+    group_text = None
+
+    class Meta:
+        abstract = True
+
+    # FIXME: decorator only required due to bug in Django v2.1
+    # https://github.com/django/django/pull/10763
+    @classmethod
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        # Disallow inheritance of group_text (when unset)
+        if 'group_text' not in vars(cls):
+            cls.group_text = None
+
+    @cachedclassproperty
+    def field_group_texts(cls):
+        group_classes = [klass for klass in cls.mro()
+                         if (klass is not cls and
+                             issubclass(klass, AbstractQuestionGroup) and
+                             klass.group_text is not None)]
+
+        # Force cls onto end for fallback/default:
+        group_classes.append(cls)
+
+        return collections.OrderedDict(
+            (field.name, next(klass.group_text for klass in group_classes
+                              if field in klass._meta.fields))
+            for field in cls._meta.fields
+        )
+
+
+class AbstractCodeQuestions(AbstractQuestionGroup):
+
+    group_text = ("Please answer these questions as you go through the "
+                  "applicant's code with them")
+
+    question_code_language = models.TextField(
+        blank=True,
+        help_text="Was the code written in Python?",
+    )
+    question_code_structure = models.TextField(
+        blank=True,
+        help_text="Was it a script (series of statements) or structured as a program?",
+    )
+    question_code_factoring = models.TextField(
+        blank=True,
+        help_text="Was the code modular? Did they write functions? Were the "
+                  "functions one-line functions, pages long, or somewhere in between?",
+    )
+    question_code_modularity = models.TextField(
+        blank=True,
+        help_text="Was the repository/code one big Jupyter notebook or one .py file? "
+                  "Or was it structured as several .py files and libraries/modules?",
+    )
+    question_code_parameterization = models.TextField(
+        blank=True,
+        help_text="Did the code have a lot of hard coded constants or was it "
+                  "designed to use parameters?",
+    )
+    question_code_communication = models.TextField(
+        blank=True,
+        help_text="When asked to explain and walk though the code, were they "
+                  "able to explain the code well?",
+    )
+    question_code_inputs = models.TextField(
+        blank=True,
+        help_text="What were the inputs to the program/functions?",
+    )
+    question_code_outputs = models.TextField(
+        blank=True,
+        help_text="What were the outputs of the program/functions?",
+    )
+
+    class Meta:
+        abstract = True
+
+
+class AbstractDataQuestions(AbstractQuestionGroup):
+
+    group_text = ("Please answer these questions as you discuss a recent "
+                  "data analysis project with them")
+
+    question_data_goal = models.TextField(
+        blank=True,
+        help_text="What was the goal of the project?",
+    )
+    question_data_retrospective = models.TextField(
+        blank=True,
+        help_text="What would the impact be if this project were successful? "
+                  "What actions would be done differently?",
+    )
+    question_data_source = models.TextField(
+        blank=True,
+        help_text="What data was used and why was that data appropriate to "
+                  "use for that task?",
+    )
+    question_data_cleaning = models.TextField(
+        blank=True,
+        help_text="How did they perform data cleaning?",
+    )
+    question_data_analysis = models.TextField(
+        blank=True,
+        help_text="What analysis did they do – explain the methods used and "
+                  "alternatives considered.",
+    )
+    question_data_evaluation = models.TextField(
+        blank=True,
+        help_text="How did they evaluate the analysis – what metric, why, and "
+                  "what does the metric mean?",
+    )
+
+    class Meta:
+        abstract = True
+
+
+class AbstractOtherQuestions(AbstractQuestionGroup):
+
+    group_text = "Other questions to ask"
+
+    question_other_expectations = models.TextField(
+        blank=True,
+        help_text="What do they expect to gain or learn from DSSG?",
+    )
+    question_other_previous_projects = models.TextField(
+        blank=True,
+        help_text="What previous DSSG projects appealed to them?",
+    )
+
+    class Meta:
+        abstract = True
+
+
+class InterviewReview(AbstractRating,
+                      AbstractCodeQuestions,
+                      AbstractDataQuestions,
+                      AbstractOtherQuestions):
+
+    group_text = "Your candidate assessment"
 
     class OverallRecommendation(SafeStrEnum):
 
@@ -558,6 +698,7 @@ class InterviewReview(AbstractRating):
         blank=True,
         help_text="Any comments?",
     )
+
     candidate_rank = models.TextField(
         blank=True,
         help_text="How does this candidate compare to others you've "
@@ -570,6 +711,11 @@ class InterviewReview(AbstractRating):
     class Meta:
         db_table = 'interview_review'
         ordering = ('-submitted',)
+
+    @classmethod
+    def question_field_names(cls):
+        return [name for (name, group_text) in cls.field_group_texts.items()
+                if group_text != cls.group_text]
 
 
 class InterviewAssignment(models.Model):

@@ -1,1 +1,5 @@
-Review a DSSG {{ application.program_year }} {% if review_type == 'interview' %}Candidate{% else %}Fellow{% endif %} {{ review_type|capfirst }}
+{% if review_type == 'application' %}
+Review a DSSG {{ application.program_year }} Fellow {{ review_type|capfirst }}
+{% elif review_type == 'interview' %}
+{{ review_type|capfirst }} a Candidate for DSSG {{ application.program_year }}
+{% endif %}

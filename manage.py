@@ -178,8 +178,9 @@ class DbLocal(LocalContainer):
             f'\tDATABASE_URL={self.EXAMPLE_DATABASE_URL} manage db'
         )
 
-    def manage(self, *args, **kwargs):
+    def manage(self, *args, user='webapp', **kwargs):
         return self.run(
+            '--user', user,
             *args,
             DATABASE_URL=self.database_url,
             **kwargs
@@ -264,6 +265,7 @@ class Develop(DbLocal):
 
     @localmethod('remainder', metavar='command arguments', nargs=REMAINDER)
     @localmethod('mcmd', metavar='command', help="django management command")
+    @localmethod('-u', '--user', default='webapp', help='container user (default: webapp)')
     def djmanage(self, args):
         """manage the appy-reviews django project"""
         return (
@@ -272,6 +274,7 @@ class Develop(DbLocal):
             self.local['docker'][
                 'exec',
                 '-it',
+                '--user', args.user,
                 args.name,
                 './manage.py',
                 args.mcmd,

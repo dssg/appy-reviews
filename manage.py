@@ -320,10 +320,15 @@ class Etl(DbLocal):
         super().__init__(parser)
 
         parser.add_argument(
-            'year',
+            '--year',
             type=int,
-            metavar='YEAR',
-            help="Program year (e.g. 2019)",
+            help=f"Program year",
+        )
+        parser.add_argument(
+            '--stage',
+            choices=('application', 'review'),
+            help="configuration preset depending on whether the application "
+                 "period is still open or applications are now under review",
         )
         parser.add_argument(
             '--all',
@@ -355,7 +360,8 @@ class Etl(DbLocal):
         return self.manage(WUFOO_API_KEY=None)[
             'loadwufoo',
             '-v', args.verbosity,
-            '-f', f'^{args.year} ',
+            (('-f', f'^{args.year} ') if args.year else ()),
+            (('--stage', args.stage) if args.stage else ()),
             ('--no-database' if not args.write_to_db else ()),
             ('output' if args.csv_cache else '-'),
         ]
@@ -371,9 +377,10 @@ class Etl(DbLocal):
         """map wufoo data into appy"""
         return self.manage()[
             'loadapps',
-            '-s', f'_{args.year}',
+            (('-s', f'_{args.year}') if args.year else ()),
+            (('--year', args.year) if args.year else ()),
+            (('--closed',) if args.stage == 'review' else ()),
             ('--dry-run' if args.dry_run else ()),
-            '--year', args.year,
             args.subcommand,
         ]
 

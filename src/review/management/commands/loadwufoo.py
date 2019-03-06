@@ -5,12 +5,11 @@ import itertools
 import os
 import pathlib
 import re
-import subprocess
 
+import ohio
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
-from plumbum import local
 from pyfoo import PyfooAPI
 
 
@@ -116,6 +115,7 @@ class Command(BaseCommand):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.entity_id_field = None
         self.verbosity = None
 
     def handle(self, target='.', filters=(), write_to_db=True,
@@ -123,11 +123,12 @@ class Command(BaseCommand):
                entity_id_field='EntryId', apply_pk=True,
                recreate=False, stage=None,
                verbosity=1, **_options):
+        self.entity_id_field = entity_id_field
         self.verbosity = verbosity
 
         if stage == 'application':
             filters.append(f'^{settings.REVIEW_PROGRAM_YEAR} ')
-            if target == '.':
+            if target == '.':  # i.e. override default
                 target = '-'
         elif stage == 'review':
             filters.extend((
@@ -142,10 +143,16 @@ class Command(BaseCommand):
         if target == '-' and not write_to_db:
             raise CommandError("Can only write to standard I/O without database – nothing to do")
 
-        csvsql = local['csvsql']
         client = PyfooAPI(*Credentials)
 
-        for (year, name, form) in stream_forms(client, filters):
+        for (form_count, (year, name, form)) in enumerate(stream_forms(client, filters)):
+            if form_count != 0:
+                self.report()
+
+            self.report('=' * (len(name) + 4))
+            self.report('=', name, '=')
+            self.report('=' * (len(name) + 4))
+
             entries = stream_entries(form)
             fields = list(stream_fields(form))
 
@@ -157,7 +164,7 @@ class Command(BaseCommand):
             else:
                 entries = itertools.chain((head,), entries)
 
-            # Write to disk
+            # Prepare streams or eagerly write to disk
             if target == '-':
                 data_paths = (None, None)
                 streams = (
@@ -176,25 +183,28 @@ class Command(BaseCommand):
                            f'survey_{name}_fields']
             if apply_suffix:
                 table_suffix = suffix or year
-                table_names = [table_name + f'_{table_suffix}'
+                table_names = [table_name + f'_{table_suffix}'.lower()  # avoid psql name ambiguity
                                for table_name in table_names]
 
             table_col_defns = [
                 # entries table columns
-                ', '.join(
-                    (
-                        f'"{field_name}" ' +
-                        ('citext' if re.search(r'^Field\d+$', field_name) else 'varchar')
-                    )
-                    for field_name in head
-                ),
+                ', '.join(self.get_field_sql(field_name) for field_name in head),
 
                 # fields table columns
                 '"field_id" varchar, "field_title" varchar',
             ]
 
-            for (table_name, table_col_defn, data_path, stream, table_apply_pk) in zip(
-                    table_names, table_col_defns, data_paths, streams, (apply_pk, False)):
+            # maybe apply primary key to entries table, never to fields table
+            tables_apply_pk = (apply_pk, False)
+
+            for (table_count, table_name, table_col_defn,
+                 data_path, stream, table_apply_pk) in zip(
+                    itertools.count(), table_names, table_col_defns,
+                    data_paths, streams, tables_apply_pk
+            ):
+                if table_count != 0:
+                    self.report()
+
                 table_name_tmp = f'{table_name}_tmp'
 
                 with connection.cursor() as cursor:
@@ -204,59 +214,39 @@ class Command(BaseCommand):
 
                 direct_write = append or not table_exists
 
-                load_command = csvsql[
-                    '--db', settings.DATABASE_URL,
-                    '--insert',
-                    '--no-create',
-                    '--no-constraints',
-                    '--no-inference',  # inference incorrectly truncates and
-                                       # casts document URIs to date
-                ]
-
                 if direct_write:
-                    load_command = load_command[
-                        '--table', table_name,
-                        '--db-schema', settings.DATABASE_SCHEMA,
-                    ]
+                    target_table_name = table_name
 
                     if recreate and table_exists:
                         # tear down old table
-                        self.execute_sql(f'drop table "{table_name}"')
+                        self.op_drop_table(table_name)
                         table_exists = False
                 else:
-                    load_command = load_command[
-                        '--table', table_name_tmp,
-                    ]
+                    target_table_name = table_name_tmp
 
-                    self.execute_sql(f'create table {table_name_tmp} '
+                    self.execute_sql(f'create temp table {table_name_tmp} '
                                      f'({table_col_defn})',
-                                     "creating temporary table", table_name_tmp)
+                                     "creating temporary table:", table_name_tmp)
 
                 if not table_exists:
-                    self.execute_sql(f'create table {settings.DATABASE_SCHEMA}.{table_name} '
-                                     f'({table_col_defn})')
-
-                    if table_apply_pk:
-                        self.execute_sql(f'alter table "{table_name}" '
-                                         f'add primary key ("{entity_id_field}")')
+                    self.op_create_destination_table(table_name, table_col_defn, table_apply_pk)
 
                 if data_path:
-                    load_command(data_path)
+                    self.report("copying file", data_path.name,
+                                "to database table:", target_table_name)
+                    # avoid weird carriage returns inside quoted strings
+                    # https://docs.python.org/3/library/csv.html#examples
+                    open_file = functools.partial(open, data_path, newline='')
                 else:
-                    self.report("streaming to database table:", (table_name if direct_write
-                                                                 else table_name_tmp))
-                    load_process = load_command.popen(
-                        '-',
-                        stdin=subprocess.PIPE,
-                        encoding='utf-8',
+                    self.report("streaming to database table:", target_table_name)
+                    open_file = functools.partial(ohio.PipeTextIO, stream)
+
+                with open_file() as infile, \
+                        connection.cursor() as cursor:
+                    cursor.copy_expert(
+                        f"copy {target_table_name} from stdin with csv header",
+                        infile,
                     )
-                    with load_process.stdin as pipe:
-                        stream(pipe)
-                    try:
-                        load_process.wait(180)
-                    except subprocess.TimeoutExpired:
-                        load_process.kill()
-                        raise
 
                 if not direct_write:
                     try:
@@ -265,27 +255,24 @@ class Command(BaseCommand):
                         if table_exists:
                             if recreate:
                                 # tear down old table
-                                self.execute_sql(f'drop table "{table_name}"')
+                                self.op_drop_table(table_name)
 
                                 # set up new table
-                                self.execute_sql(
-                                    f'create table {settings.DATABASE_SCHEMA}.{table_name} '
-                                    f'({table_col_defn})'
-                                )
-
-                                if table_apply_pk:
-                                    self.execute_sql(f'alter table "{table_name}" '
-                                                     f'add primary key ("{entity_id_field}")')
+                                self.op_create_destination_table(table_name,
+                                                                 table_col_defn,
+                                                                 table_apply_pk)
                             else:
-                                self.execute_sql(f'truncate table only {table_name}')
+                                self.execute_sql(f'truncate table only {table_name}',
+                                                 "truncating destination table:", table_name)
 
+                        self.report("(re)-populating destination table",
+                                    "from temporary table:",
+                                    table_name_tmp, '→', table_name)
                         self.execute_sql(f'insert into {table_name} '
                                          f'select * from {table_name_tmp}')
-
-                        self.execute_sql(f'drop table {table_name_tmp}')
                     except BaseException:
                         try:
-                            self.execute_sql('rollback')
+                            self.execute_sql('rollback', 'rolling back transaction')
                         except BaseException:
                             pass
 
@@ -293,14 +280,41 @@ class Command(BaseCommand):
                     else:
                         self.execute_sql('commit')
 
+    @staticmethod
+    def get_field_sql(field_name):
+        if re.search(r'^Field\d+$', field_name):
+            field_type = 'citext'
+        else:
+            field_type = 'varchar'
+
+        return f'"{field_name}" {field_type}'
+
     def execute_sql(self, sql, *comments):
         if comments:
             self.report(*comments, minlevel=3)
 
-        self.report(sql, minlevel=3)
+        self.report('\t' + sql, minlevel=3)
 
         with connection.cursor() as cursor:
             cursor.execute(sql)
+
+    def op_drop_table(self, table_name):
+        self.execute_sql(f'drop table "{table_name}"',
+                         'dropping existing table', table_name)
+
+    def op_create_destination_table(self, table_name, table_col_defn, apply_pk):
+        self.execute_sql(
+            f'create table {settings.DATABASE_SCHEMA}.{table_name} '
+            f'({table_col_defn})',
+            'creating destination table:', table_name,
+        )
+
+        if apply_pk:
+            self.execute_sql(
+                f'alter table "{table_name}" '
+                f'add primary key ("{self.entity_id_field}")',
+                'applying primary key to', table_name, self.entity_id_field,
+            )
 
     def report(self, *contents, minlevel=2):
         if self.verbosity >= minlevel:
@@ -315,7 +329,7 @@ class Command(BaseCommand):
                 for (key, value) in entry.items()
             })
 
-        self.report("\twriting entries:", count)
+        self.report("\twrote entries:", count)
 
     def write_fields_csv(self, head, fields, outfile):
         writer = csv.writer(outfile, lineterminator=os.linesep)
@@ -324,21 +338,27 @@ class Command(BaseCommand):
             if field_id and field_id in head:
                 writer.writerow([field_id, field_title.strip()])
 
-        self.report("\twriting fields:", count)
+        self.report("\twrote fields:", count)
 
     def write_disk(self, target, name, head, entries, fields):
         """Write CSV to disk."""
         data_file_name = name + '.csv'
         data_path = pathlib.Path(target) / data_file_name
-        with data_path.open('w') as outfile:
+        with data_path.open('w', newline='') as outfile:
             if head is not None:
+                self.report('writing entries to:', data_path)
                 self.write_entries_csv(head, entries, outfile)
+            else:
+                self.report('no entries to write')
 
         field_file_name = name + '_fields.csv'
         field_path = pathlib.Path(target) / field_file_name
-        with field_path.open('w') as outfile:
+        with field_path.open('w', newline='') as outfile:
             if head is not None:
+                self.report('writing fields to:', data_path)
                 self.write_fields_csv(head, fields, outfile)
+            else:
+                self.report('no entries (will not write fields)')
 
         return (data_path, field_path)
 

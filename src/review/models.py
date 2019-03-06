@@ -578,38 +578,46 @@ class AbstractCodeQuestions(AbstractQuestionGroup):
 
     question_code_language = models.TextField(
         blank=True,
+        null=True,
         help_text="Was the code written in Python?",
     )
     question_code_structure = models.TextField(
         blank=True,
+        null=True,
         help_text="Was it a script (series of statements) or structured as a program?",
     )
     question_code_factoring = models.TextField(
         blank=True,
+        null=True,
         help_text="Was the code modular? Did they write functions? Were the "
                   "functions one-line functions, pages long, or somewhere in between?",
     )
     question_code_modularity = models.TextField(
         blank=True,
+        null=True,
         help_text="Was the repository/code one big Jupyter notebook or one .py file? "
                   "Or was it structured as several .py files and libraries/modules?",
     )
     question_code_parameterization = models.TextField(
         blank=True,
+        null=True,
         help_text="Did the code have a lot of hard coded constants or was it "
                   "designed to use parameters?",
     )
     question_code_communication = models.TextField(
         blank=True,
+        null=True,
         help_text="When asked to explain and walk though the code, were they "
                   "able to explain the code well?",
     )
     question_code_inputs = models.TextField(
         blank=True,
+        null=True,
         help_text="What were the inputs to the program/functions?",
     )
     question_code_outputs = models.TextField(
         blank=True,
+        null=True,
         help_text="What were the outputs of the program/functions?",
     )
 
@@ -624,29 +632,35 @@ class AbstractDataQuestions(AbstractQuestionGroup):
 
     question_data_goal = models.TextField(
         blank=True,
+        null=True,
         help_text="What was the goal of the project?",
     )
     question_data_retrospective = models.TextField(
         blank=True,
+        null=True,
         help_text="What would the impact be if this project were successful? "
                   "What actions would be done differently?",
     )
     question_data_source = models.TextField(
         blank=True,
+        null=True,
         help_text="What data was used and why was that data appropriate to "
                   "use for that task?",
     )
     question_data_cleaning = models.TextField(
         blank=True,
+        null=True,
         help_text="How did they perform data cleaning?",
     )
     question_data_analysis = models.TextField(
         blank=True,
+        null=True,
         help_text="What analysis did they do – explain the methods used and "
                   "alternatives considered.",
     )
     question_data_evaluation = models.TextField(
         blank=True,
+        null=True,
         help_text="How did they evaluate the analysis – what metric, why, and "
                   "what does the metric mean?",
     )
@@ -661,10 +675,12 @@ class AbstractOtherQuestions(AbstractQuestionGroup):
 
     question_other_expectations = models.TextField(
         blank=True,
+        null=True,
         help_text="What do they expect to gain or learn from DSSG?",
     )
     question_other_previous_projects = models.TextField(
         blank=True,
+        null=True,
         help_text="What previous DSSG projects appealed to them?",
     )
 

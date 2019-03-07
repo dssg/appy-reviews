@@ -362,6 +362,11 @@ class Application(models.Model):
         "Interview (Round 2)?",
         help_text="Whether we intend to give this applicant a second interview",
     )
+    # We don't generally intend on a third round; but, it's always under threat...:
+    # interview3_decision = models.NullBooleanField(
+    #     "Interview (Round 3)?",
+    #     help_text="Whether we intend to give this applicant a third interview",
+    # )
     final_decision = EnumCharField(FinalDecision, blank=True)
 
     program_year = models.IntegerField()
@@ -740,6 +745,9 @@ class InterviewAssignment(models.Model):
 
         round_one = 1
         round_two = 2
+
+        # See Application.interview3_decision
+        # round_three = 3
 
     interview_assignment_id = models.AutoField(primary_key=True)
     application = models.ForeignKey('review.Application',

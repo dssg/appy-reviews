@@ -734,9 +734,19 @@ class InterviewReview(AbstractRating,
         ordering = ('-submitted',)
 
     @classmethod
-    def question_field_names(cls):
-        return [name for (name, group_text) in cls.field_group_texts.items()
-                if group_text != cls.group_text]
+    def question_fields(cls):
+        fields = (
+            (name, cls._meta.get_field(name))
+            for (name, group_text) in cls.field_group_texts.items()
+            if group_text != cls.group_text
+        )
+        return collections.OrderedDict((name, field.help_text)
+                                       for (name, field) in fields)
+
+    @cachedproperty
+    def has_questions(self):
+        return any(getattr(self, question_name) is not None
+                   for question_name in self.question_fields())
 
 
 class InterviewAssignment(models.Model):

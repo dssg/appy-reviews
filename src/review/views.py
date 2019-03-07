@@ -22,7 +22,8 @@ from review import models, query, reports
 RATING_FIELDS = models.ApplicationReview.rating_fields()
 RATING_NAMES = tuple(RATING_FIELDS)
 
-INTERVIEW_QUESTION_NAMES = tuple(models.InterviewReview.question_field_names())
+INTERVIEW_QUESTION_FIELDS = models.InterviewReview.question_fields()
+INTERVIEW_QUESTION_NAMES = tuple(INTERVIEW_QUESTION_FIELDS)
 
 
 class RatingWidget(forms.RadioSelect):
@@ -361,6 +362,7 @@ def review_interview(request, assignment_id):
         'application_reviews': assignment.application.application_reviews.all(),
         'interview_reviews': interview_reviews,
         'rating_fields': RATING_FIELDS,
+        'interview_fields': INTERVIEW_QUESTION_FIELDS,
     })
 
 

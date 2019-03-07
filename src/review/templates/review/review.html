@@ -25,6 +25,11 @@
             padding: 0.4em;
         }
 
+        .review-questions {
+            background-color: white;
+            text-align: left;
+        }
+
         /* section review */
 
         #review {
@@ -331,6 +336,19 @@
                     {{ review.candidate_rank|linebreaksbr }}
                 </td>
             </tr>
+            {% if review.has_questions %}
+            <tr>
+                <th class="inline">Questions</th>
+                <td class="review-questions" colspan="10">
+                    <dl class="formatted serif striped grad2">
+                        {% for question_name, question_text in interview_fields.items %}
+                        <dt>{{ question_text }}</dt>
+                        <dd>{{ review|lookup:question_name }}</dd>
+                        {% endfor %}
+                    </dl>
+                </td>
+            </tr>
+            {% endif %}
             {% endfor %}
         </table>
     </section>

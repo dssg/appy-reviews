@@ -289,6 +289,7 @@ class Db(DbLocal):
 
     commands = (
         'showmigrations',
+        'sqlmigrate',
         'makemigrations',
         'migrate',
     )

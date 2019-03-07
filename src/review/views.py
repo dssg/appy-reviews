@@ -41,6 +41,8 @@ class RatingWidget(forms.RadioSelect):
 
 class ReviewForm(forms.ModelForm):
 
+    group_single = True
+
     # ensure empty option isn't provided
     # (ModelForm insists on inserting it)
     overall_recommendation = forms.ChoiceField(widget=forms.RadioSelect)
@@ -70,10 +72,16 @@ class ReviewForm(forms.ModelForm):
                                                lambda field: field_group_texts[field.name])
 
         # cannot return exhaustible generators to templates, so construct lists
-        return [
+        field_groups = [
             (group_text, list(field_group))
             for (group_text, field_group) in field_group_stream
         ]
+
+        if self.group_single or len(field_groups) > 1:
+            return field_groups
+
+        ((_group_text, field_group),) = field_groups
+        return [(None, field_group)]
 
 
 class ApplicationReviewForm(ReviewForm):
@@ -103,11 +111,25 @@ class ApplicationReviewForm(ReviewForm):
             self.instance.reviewer = self.reviewer
 
 
-class InterviewReviewForm(ReviewForm):
+class InterviewReviewOneForm(ReviewForm):
 
     class Meta:
         model = models.InterviewReview
         fields = INTERVIEW_QUESTION_NAMES + RATING_NAMES + (
+            'overall_recommendation',
+            'comments',
+            'candidate_rank',
+        )
+        widgets = {rating_field: RatingWidget for rating_field in RATING_NAMES}
+
+
+class InterviewReviewPlusForm(ReviewForm):
+
+    group_single = False
+
+    class Meta:
+        model = models.InterviewReview
+        fields = RATING_NAMES + (
             'overall_recommendation',
             'comments',
             'candidate_rank',
@@ -312,10 +334,15 @@ def review_interview(request, assignment_id):
     else:
         interview_reviews = interview_reviews.exclude(pk=review.pk)
 
+    if assignment.interview_round > assignment.InterviewRound.round_one:
+        make_form = InterviewReviewPlusForm
+    else:
+        make_form = InterviewReviewOneForm
+
     if request.method == 'POST':
-        review_form = InterviewReviewForm(data=request.POST,
-                                          instance=review,
-                                          reviewer=request.user)
+        review_form = make_form(data=request.POST,
+                                instance=review,
+                                reviewer=request.user)
         if review_form.is_valid():
             with transaction.atomic():
                 review_form.save()
@@ -323,8 +350,7 @@ def review_interview(request, assignment_id):
             messages.success(request, 'Review submitted')
             return redirect('index')
     else:
-        review_form = InterviewReviewForm(instance=review,
-                                          reviewer=request.user)
+        review_form = make_form(instance=review, reviewer=request.user)
 
     return TemplateResponse(request, 'review/review.html', {
         'application': assignment.application,

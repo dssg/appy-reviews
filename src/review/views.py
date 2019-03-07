@@ -323,16 +323,10 @@ def review_interview(request, assignment_id):
     if assignment.reviewer != request.user:
         return http.HttpResponseForbidden("Forbidden")
 
-    interview_reviews = models.InterviewReview.objects.filter(
-        interview_assignment__application=assignment.application,
-    )
-
     try:
         review = assignment.interview_review
     except models.InterviewReview.DoesNotExist:
         review = models.InterviewReview(interview_assignment=assignment)
-    else:
-        interview_reviews = interview_reviews.exclude(pk=review.pk)
 
     if assignment.interview_round > assignment.InterviewRound.round_one:
         make_form = InterviewReviewPlusForm
@@ -352,16 +346,20 @@ def review_interview(request, assignment_id):
     else:
         review_form = make_form(instance=review, reviewer=request.user)
 
+    interview_reviews = models.InterviewReview.objects.filter(
+        interview_assignment__application=assignment.application,
+        interview_assignment__interview_round__lt=assignment.interview_round,
+    ).exclude(
+        interview_assignment=assignment,
+    )
+
     return TemplateResponse(request, 'review/review.html', {
         'application': assignment.application,
         'application_fields': settings.REVIEW_APPLICATION_FIELDS,
         'review_form': review_form,
         'review_type': 'interview',
         'application_reviews': assignment.application.application_reviews.all(),
-        'interview_reviews': (interview_reviews
-                              if assignment.interview_round ==
-                                 assignment.InterviewRound.round_two
-                              else None),
+        'interview_reviews': interview_reviews,
         'rating_fields': RATING_FIELDS,
     })
 

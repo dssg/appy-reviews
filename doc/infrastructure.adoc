@@ -1,4 +1,5 @@
 = Appy Infrastructure
+:toc:
 
 == Components
 
@@ -64,3 +65,83 @@ manage dns set static
 ----
 
 DNS propagation may take some time. You can confirm the DNS configuration with the `manage dns check` command, (and furthermore with `dig`).
+
+=== Terminate Web servers
+
+With `review.dssg.io` pointed at the static site, there's no need for the ELB nor EC2 instance(s).
+
+The Appy servers are managed by an Elastic Beanstalk environment.
+
+EB environments may not be simply "disabled." It is possible to simply scale down its instances; however, this leaves running an inactive load balancer.
+
+Instead, we'll cover saving its configuration and then terminating the environment.
+
+CAUTION: It **cannot** be guaranteed that the environment will rebuild precisely as it was. But, it should be reasonably close, and these commands may be refined for that purpose.
+
+==== Save environment configuration
+
+The following EB CLI command saves an environmental configuration both locally and in AWS:
+
+[source,sh]
+----
+eb config save appy-reviews-pro --cfg close_2019-04-24
+----
+
+In the above, we've saved the current configuration for environment `appy-reviews-pro` with the name `close_2019-04-24`.
+
+[NOTE]
+====
+The environment configuration _may_ (currently) contains **secrets**.
+
+As such, the project repository is configured to ignore these files. If you'd like to store this file elsewhere, consider Unix https://www.passwordstore.org/[`pass`].
+
+Regardless, AWS stores saved configurations. You may list these via the CLI:
+
+[source,sh]
+----
+eb config list
+----
+
+====
+
+==== Terminate environment
+
+Having saved the environment configuration, you may terminate the environment and its AWS resources:
+
+[source,sh]
+----
+eb terminate appy-reviews-pro
+----
+
+CAUTION: Do *not* supply to `terminate` the flag `--all`. This would remove the entire EB configuration for the appy-reviews application. (And though this would not be the end of the world, it's likely not what you want!)
+
+=== Terminate database
+
+First, note various RDS configuration options which are not persisted to the snapshot:
+
+Instance class::
+
+  `db.t2.medium`
+
+Parameter group::
+
+  `default.postgres10`
+
+Security groups::
+
+  * ddj compatible security group (`sg-5f596020`)
+  * rds-launch-wizard (`sg-05d804e82060e83d5`)
+
+Storage type::
+
+  General Purpose (SSD)
+
+Then, terminate the RDS database instance `appy`, ensuring that a final snapshot is taken:
+
+[source,sh]
+----
+aws rds delete-db-instance \
+    --db-instance-identifier appy  \
+    --final-db-snapshot-identifier appy-close-2019-04-24 \
+    --delete-automated-backups
+----

@@ -1,13 +1,24 @@
 # appy-reviews
 
-A "smart" Web application for reviewing DSSG program application submissions
+Appy is a "smart" Web application for reviewing DSSG program application submissions.
 
 ## Management
 
-### Requirements
+### Assumptions
 
-* docker
-* pyenv-virtualenv
+The below dependencies are not strict requirements, but they are strongly recommended and assumed.
+
+#### Docker
+
+Appy is developed against and deployed via [Docker](https://www.docker.com/).
+
+#### pyenv
+
+[pyenv](https://github.com/pyenv/pyenv) is a great development tool for managing versions of Python, as well as its plugin [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv) for managing distinct virtual environments.
+
+#### direnv
+
+[direnv](https://direnv.net/) is another useful, generic development tool, for managing environmental variables.
 
 ### Set-up
 
@@ -19,7 +30,7 @@ A "smart" Web application for reviewing DSSG program application submissions
 
         pip install -r requirement/console.txt
 
-1. Optionally export environment variables:
+1. Optionally export environment variables such as:
 
     * `DATABASE_URL=postgres://appy_reviews:PASSWORD@DBHOST:DBPORT/appy_reviews`
     * `AWS_PROFILE`
@@ -30,3 +41,7 @@ A "smart" Web application for reviewing DSSG program application submissions
 Project development, deployment, _etc._ are managed via `argcmdr`:
 
     manage --help
+
+## Further reading
+
+Refer to the [documentation](doc/).

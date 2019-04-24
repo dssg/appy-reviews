@@ -1,0 +1,66 @@
+= Appy Infrastructure
+
+== Components
+
+* DNS (https://console.aws.amazon.com/route53/home[Route53])
+* Web Servers (https://console.aws.amazon.com/elasticbeanstalk/home[Elastic Beanstalk])
+** load balancer (https://console.aws.amazon.com/ec2/v2/home#LoadBalancers:sort=loadBalancerName[Elastic Load Balancer])
+** computational servers (https://console.aws.amazon.com/ec2/v2/home#Instances:sort=launchTime[EC2])
+* Database server (https://console.aws.amazon.com/rds/home[RDS])
+* Inactivity page (https://console.aws.amazon.com/s3/[S3] & https://console.aws.amazon.com/cloudfront/home[Cloudfront])
+
+== Shut it down
+
+Shut down Appy for the year.
+
+=== Update the static "closed" page in S3
+
+Review the http://review.dssg.io.s3-website-us-west-2.amazonaws.com/[Appy static site]. You can also review the https://s3-us-west-2.amazonaws.com/review.dssg.io/index.html["closed" page file directly].
+
+Note that the static site does **not** support HTTPS, (because it's an S3 Web site). This is why it is pushed to https://d2va83k0l3phq8.cloudfront.net/[Cloudfront], and DNS will be pointed to Cloudfront, instead.
+
+To update the "closed" page in S3:
+
+[source,sh]
+----
+manage static closed
+----
+
+The template behind this file can be found at:
+
+ src/review/templates/review/closed.html
+
+This template will automatically update the static page with the current year configured in settings.
+
+=== Point DNS at Cloudfront
+
+[NOTE]
+====
+The DNS configuration for `dssg.io` -- and `review.dssg.io` by extension -- historically resides under a different AWS account than the remainder of Appy's infrastructure.
+
+As these management commands wrap shell commands such as `aws`, you may pass necessary (novel) configuration via environment variable, such as:
+
+[source,sh]
+----
+AWS_PROFILE=dssg manage dns check
+----
+
+====
+
+To check the current DNS configuration for `review.dssg.io`:
+
+[source,sh]
+----
+manage dns check
+----
+
+The result should https://review.dssg.io/[reflect what you see] -- either the `LIVE` site or the `STATIC` site.
+
+To point the `review.dssg.io` domain at the Cloudfront site:
+
+[source,sh]
+----
+manage dns set static
+----
+
+DNS propagation may take some time. You can confirm the DNS configuration with the `manage dns check` command, (and furthermore with `dig`).

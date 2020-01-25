@@ -19,6 +19,50 @@ class Appy(LocalRoot):
 
 
 @Appy.register
+class Env(Local):
+    """manage elastic beanstalk environment (configuration)"""
+
+    default_env = 'appy-reviews-pro'
+
+    def __init__(self, parser):
+        parser.add_argument(
+            '-n', '--name',
+            default=self.default_env,
+            help=f"target environment (default: {self.default_env})",
+        )
+
+    @localmethod('config',
+                 help="saved configuration from which to create environment")
+    def create(self, args):
+        """create environment from saved configuration"""
+        yield self.local['eb'][
+            'create',
+            args.name,
+            '--cfg', args.config,
+        ]
+
+    @localmethod('config', nargs='?', help="label for saved configuration")
+    @localmethod('--no-save', dest='save', default=True, action='store_false')
+    def destroy(self, args, parser):
+        """tear down environment (having saved its configuration)"""
+        if args.save:
+            if not args.config:
+                parser.error('config name required')
+
+            yield self.local['eb'][
+                'config',
+                'save',
+                args.name,
+                '--cfg', args.config,
+            ]
+
+        yield self.local['eb'][
+            'terminate',
+            args.name,
+        ]
+
+
+@Appy.register
 class Build(Local):
     """build container image"""
 

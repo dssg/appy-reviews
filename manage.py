@@ -20,7 +20,7 @@ class Appy(LocalRoot):
 
 @Appy.register
 class Env(Local):
-    """manage elastic beanstalk environment (configuration)"""
+    """manage elastic beanstalk environment"""
 
     default_env = 'appy-reviews-pro'
 
@@ -60,6 +60,132 @@ class Env(Local):
             'terminate',
             args.name,
         ]
+
+
+@Appy.register
+class DNS(Local):
+    """manage site DNS"""
+
+    SET_STYLE = 'alias'  # alias or cname
+
+    class StrEnum(str, enum.Enum):
+
+        def __str__(self):
+            return self.value
+
+    class Domain(StrEnum):
+
+        zone = 'dssg.io.'
+        fqdn = f'review.{zone}'
+
+    class CName(StrEnum):
+
+        live = 'pro-reviews-dssg.us-west-2.elasticbeanstalk.com'
+        static = 'd2va83k0l3phq8.cloudfront.net'
+
+    class profile_hint(contextlib.AbstractContextManager):
+        """Print a helpful hint about using the correct AWS profile in
+        the event of an execution error.
+
+        Note that the exception is not suppressed.
+
+        """
+        def __exit__(self, _exc_type, exc_value, _exc_tb):
+            if isinstance(exc_value, Local.local.ProcessExecutionError):
+                print(
+                    'Hint: specify your AWS profile for the DSSG account:\n'
+                    '\n'
+                    '\tAWS_PROFILE=dssg manage dns ...\n',
+                    file=sys.stderr,
+                )
+
+    @classmethod
+    def prepare_hosted_zone(cls):
+        # AWS_PROFILE=dssg
+        return cls.local['aws'][
+            'route53',
+            'list-hosted-zones',
+            '--query', f"HostedZones[?Name == '{cls.Domain.zone}']",
+        ] | cls.local['jq'][
+            '.[0].Id',
+        ]
+
+    @localmethod
+    def check(self):
+        """look up the site's current DNS setting"""
+        with self.profile_hint():
+            (_retcode, output, _error) = yield (
+                self.prepare_hosted_zone() |
+                self.local['xargs'][
+                    '-I', '{}',
+                    'aws',
+                    'route53',
+                    'list-resource-record-sets',
+                    '--hosted-zone-id', '{}',
+                    '--query', f"ResourceRecordSets[?Name == '{self.Domain.fqdn}']",
+                ] | self.local['jq']['-r'][
+                    '.[0].AliasTarget.DNSName'
+                    if self.SET_STYLE == 'alias' else
+                    '.[0].ResourceRecords[0].Value'
+                ]
+            )
+
+        if output is None:
+            # dry run
+            return
+
+        cname = output.strip('. \n')
+        for value in self.CName:
+            if value == cname:
+                print(value.name.upper() | colors.info)
+                break
+        else:
+            print('UNKNOWN' | colors.warn)
+
+    @localmethod('target', choices=CName.__members__, help="the CNAME value to set")
+    def set(self, args):
+        """set the site's DNS to either the live server or the static
+        content bucket
+
+        """
+        target_cname = self.CName[args.target]
+
+        if target_cname.endswith('.elasticbeanstalk.com'):
+            alias_target_zone_id = 'Z38NKT9BP95V3O'
+        elif target_cname.endswith('.cloudfront.net'):
+            alias_target_zone_id = 'Z2FDTNDATAQYW2'
+        else:
+            raise ValueError("HostedZoneId for target unknown", target_cname)
+
+        with self.profile_hint():
+            yield self.prepare_hosted_zone() | self.local['xargs'][
+                '-I', '{}',
+                'aws',
+                'route53',
+                'change-resource-record-sets',
+                '--hosted-zone-id', '{}',
+                '--change-batch', ('''{
+                    "Changes": [{
+                        "Action": "UPSERT",
+                        "ResourceRecordSet": {
+                            "Name": "%%s",
+                            %s
+                        }
+                    }]
+                }''' % (
+                    '''"Type": "A",
+                       "AliasTarget": {
+                           "HostedZoneId": "%s",
+                           "DNSName": "%%s",
+                           "EvaluateTargetHealth": false
+                       }''' % alias_target_zone_id
+                    if self.SET_STYLE == 'alias' else
+                    '''"Type": "CNAME",
+                       "TTL": 300,
+                       "ResourceRecords": [{"Value": "%s"}]'''
+                    )
+                ) % (self.Domain.fqdn, target_cname),
+            ]
 
 
 @Appy.register
@@ -328,6 +454,34 @@ class Develop(DbLocal):
 
 
 @Appy.register
+class Static(LocalContainer):
+    """generate static pages"""
+
+    @localmethod
+    def closed(self):
+        """render closed.html and upload it to the S3 bucket as index.html"""
+        return (
+            # render to stdout
+            self.run()[
+                './manage.py',
+                'makestatic',
+                'closed',
+                'program_year={settings.REVIEW_PROGRAM_YEAR}',
+            ] |
+            # pipe rendering to awscli
+            # and upload to bucket
+            self.local['aws'][
+                's3',
+                'cp',
+                '-',
+                's3://review.dssg.io/index.html',
+                '--acl', 'public-read',
+                '--content-type', 'text/html',
+            ]
+        )
+
+
+@Appy.register
 class Db(DbLocal):
     """manage database via local container"""
 
@@ -445,157 +599,3 @@ class Reviewer(DbLocal):
             'sendinvite',
             args.remainder,
         ]
-
-
-@Appy.register
-class Static(LocalContainer):
-    """generate static pages"""
-
-    @localmethod
-    def closed(self):
-        """render closed.html and upload it to the S3 bucket as index.html"""
-        return (
-            # render to stdout
-            self.run()[
-                './manage.py',
-                'makestatic',
-                'closed',
-                'program_year={settings.REVIEW_PROGRAM_YEAR}',
-            ] |
-            # pipe rendering to awscli
-            # and upload to bucket
-            self.local['aws'][
-                's3',
-                'cp',
-                '-',
-                's3://review.dssg.io/index.html',
-                '--acl', 'public-read',
-                '--content-type', 'text/html',
-            ]
-        )
-
-
-@Appy.register
-class DNS(Local):
-    """manage site DNS"""
-
-    SET_STYLE = 'alias'  # alias or cname
-
-    class StrEnum(str, enum.Enum):
-
-        def __str__(self):
-            return self.value
-
-    class Domain(StrEnum):
-
-        zone = 'dssg.io.'
-        fqdn = f'review.{zone}'
-
-    class CName(StrEnum):
-
-        live = 'pro-reviews-dssg.us-west-2.elasticbeanstalk.com'
-        static = 'd2va83k0l3phq8.cloudfront.net'
-
-    class profile_hint(contextlib.AbstractContextManager):
-        """Print a helpful hint about using the correct AWS profile in
-        the event of an execution error.
-
-        Note that the exception is not suppressed.
-
-        """
-        def __exit__(self, _exc_type, exc_value, _exc_tb):
-            if isinstance(exc_value, Local.local.ProcessExecutionError):
-                print(
-                    'Hint: specify your AWS profile for the DSSG account:\n'
-                    '\n'
-                    '\tAWS_PROFILE=dssg manage dns ...\n',
-                    file=sys.stderr,
-                )
-
-    @classmethod
-    def prepare_hosted_zone(cls):
-        # AWS_PROFILE=dssg
-        return cls.local['aws'][
-            'route53',
-            'list-hosted-zones',
-            '--query', f"HostedZones[?Name == '{cls.Domain.zone}']",
-        ] | cls.local['jq'][
-            '.[0].Id',
-        ]
-
-    @localmethod
-    def check(self):
-        """look up the site's current DNS setting"""
-        with self.profile_hint():
-            (_retcode, output, _error) = yield (
-                self.prepare_hosted_zone() |
-                self.local['xargs'][
-                    '-I', '{}',
-                    'aws',
-                    'route53',
-                    'list-resource-record-sets',
-                    '--hosted-zone-id', '{}',
-                    '--query', f"ResourceRecordSets[?Name == '{self.Domain.fqdn}']",
-                ] | self.local['jq']['-r'][
-                    '.[0].AliasTarget.DNSName'
-                    if self.SET_STYLE == 'alias' else
-                    '.[0].ResourceRecords[0].Value'
-                ]
-            )
-
-        if output is None:
-            # dry run
-            return
-
-        cname = output.strip('. \n')
-        for value in self.CName:
-            if value == cname:
-                print(value.name.upper() | colors.info)
-                break
-        else:
-            print('UNKNOWN' | colors.warn)
-
-    @localmethod('target', choices=CName.__members__, help="the CNAME value to set")
-    def set(self, args):
-        """set the site's DNS to either the live server or the static
-        content bucket
-
-        """
-        target_cname = self.CName[args.target]
-
-        if target_cname.endswith('.elasticbeanstalk.com'):
-            alias_target_zone_id = 'Z38NKT9BP95V3O'
-        elif target_cname.endswith('.cloudfront.net'):
-            alias_target_zone_id = 'Z2FDTNDATAQYW2'
-        else:
-            raise ValueError("HostedZoneId for target unknown", target_cname)
-
-        with self.profile_hint():
-            yield self.prepare_hosted_zone() | self.local['xargs'][
-                '-I', '{}',
-                'aws',
-                'route53',
-                'change-resource-record-sets',
-                '--hosted-zone-id', '{}',
-                '--change-batch', ('''{
-                    "Changes": [{
-                        "Action": "UPSERT",
-                        "ResourceRecordSet": {
-                            "Name": "%%s",
-                            %s
-                        }
-                    }]
-                }''' % (
-                    '''"Type": "A",
-                       "AliasTarget": {
-                           "HostedZoneId": "%s",
-                           "DNSName": "%%s",
-                           "EvaluateTargetHealth": false
-                       }''' % alias_target_zone_id
-                    if self.SET_STYLE == 'alias' else
-                    '''"Type": "CNAME",
-                       "TTL": 300,
-                       "ResourceRecords": [{"Value": "%s"}]'''
-                    )
-                ) % (self.Domain.fqdn, target_cname),
-            ]

@@ -1,3 +1,4 @@
+# NOTE: unclear if this is used anymore (or ever was)
 version: '2'
 
 services:

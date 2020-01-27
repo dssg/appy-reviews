@@ -19,6 +19,47 @@ class Appy(LocalRoot):
 
 
 @Appy.register
+class Stack(Local):
+    """manage infrastructure (excluding elastic beanstalk)"""
+
+    checkmethod = localmethod(
+        '-y', '--yes',
+        action='store_true',
+        default=False,
+        dest='pre_approved',
+        help='do not prompt for confirmation',
+    )
+
+    def exec_terraform(self, command, *flags):
+        flags += ('-auto-approve',) if getattr(self.args, 'pre_approved', False) else ()
+        yield self.local.FG, self.local['terraform'][command, flags]
+
+    @localmethod
+    def check(self):
+        """check state of stack via: terraform plan"""
+        yield from self.exec_terraform('plan')
+
+    @checkmethod
+    def sync(self):
+        """sync stack via: terraform apply"""
+        yield from self.exec_terraform('apply')
+
+    @checkmethod
+    def destroy(self, args):
+        """tear down stack via: terraform destroy"""
+        if not args.pre_approved:
+            print(
+                colors.bold |
+                "If you have initialized the hub's kubernetes cluster, "
+                "you might want to destroy that first!"
+            )
+            print('\n\t', 'manage hub destroy', '\n')
+            input(colors.bold | 'Press enter to continue or ctrl+c to abort...\n')
+
+        yield from self.exec_terraform('destroy')
+
+
+@Appy.register
 class Env(Local):
     """manage elastic beanstalk environment"""
 

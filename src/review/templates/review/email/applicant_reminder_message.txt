@@ -1,11 +1,11 @@
 Hi {{applicant_first}},
 
-Thanks for starting your application for the 2019 Data Science for Social Good Fellowship. We noticed that you still have not completed part 2 of the application. This is a reminder that the deadline for finishing the application is end of tomorrow (Jan 31). Please make sure you finish the application (see below) and ask your recommenders to submit their recommendations (if they haven’t done so yet).
+Thanks for starting your application for the 2020 Data Science for Social Good Fellowship at Carnegie Mellon University. We noticed that you still have not completed part 2 of the application. This is a reminder that the deadline for finishing the application is Jan 31. Please make sure you finish the application (see below) and ask your recommenders to submit their recommendations (if they haven’t done so yet).
 
 Complete your application:
 {{application_link}}
 
 Thank you,
 Data Science for Social Good
-University of Chicago
-dssg.uchicago.edu
+Carnegie Mellon University
+http://www.dssg.fellowship.org

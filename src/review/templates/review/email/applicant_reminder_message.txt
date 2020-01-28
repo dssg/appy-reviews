@@ -8,4 +8,4 @@ Complete your application:
 Thank you,
 Data Science for Social Good
 Carnegie Mellon University
-http://www.dssg.fellowship.org
+http://www.dssgfellowship.org

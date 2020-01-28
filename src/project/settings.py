@@ -39,14 +39,16 @@ SECRET_KEY = '2n3(z!1*qc(&*-7((1$myom)7oyn@pr!348s&unjxr7-9-npm('
 DEBUG = bool_environ('APPY_DEBUG')
 
 CANONICAL_HOST = 'review.dssg.io'
+STAGING_HOST = f's.{CANONICAL_HOST}'
 
 if DEBUG:
     EC2_PRIVATE_IP = None
 else:
     ALLOWED_HOSTS = [
-        'pro-reviews-dssg.us-west-2.elasticbeanstalk.com',
-        'dev-reviews-dssg.us-west-2.elasticbeanstalk.com',
+	'appy-reviews-pro.c64mkkpvyn.us-west-2.elasticbeanstalk.com',
+	'appy-reviews-dev.c64mkkpvyn.us-west-2.elasticbeanstalk.com',
         CANONICAL_HOST,
+	STAGING_HOST,
     ]
 
     try:

@@ -1,2 +1,3 @@
 https://github.com/dssg/argcmdr/archive/jsl/delegation.zip
-awsebcli==3.14.10
+awscli==1.17.9
+awsebcli==3.17.0

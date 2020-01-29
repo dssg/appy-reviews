@@ -244,21 +244,20 @@ REVIEW_APPLICATION_FIELDS = {
     #           None,
     #       ),
     #       ...
-    'survey_application_1_2019': (
-        'Location Preference', (
-        ('Preference', ('Your Choice',)),
-        ('Constraints or other information', (
-            '''Any constraints or other information you want to give us '''
-            '''about your location preferences''',
-        )),
+    # FIXME: For many of these, would be at least as easy and
+    # FIXME: reliable (if not more so) to use FieldIds....
+    f'survey_application_1_{REVIEW_PROGRAM_YEAR}': (
+        'Fellowship Preference', (
+        ('Preference', ("Our DSSGx Turing UK chapter is running an  affiliated DSSGx Turing UK Summer Fellowship. This is being run separately and independently from the main DSSG Summer Fellowship at Carnegie Mellon University and will run from June 15 to September 5 at the University of Warwick.\n\n If you're interested in being considered for that program, please select one of the following options",)),
     )),
-    'survey_application_2_2019': (
+    f'survey_application_2_{REVIEW_PROGRAM_YEAR}': (
         'Main', (
         ('Full Name', (('First', 0), ('Last', 0))),
         ('Preferred Name', None),
         ('Email', None),
+        ('Phone', None),
         ('Locale', ('City', 'State / Province / Region', 'Country')),
-        ('Citizenship and Visa Status for US and UK', None),
+        ('Citizenship and Visa Status for US', None),
         ('Self description', ('I am a:',)),
         ('Gender identification', ('I identify my gender as:',)),
         ('University Name', None),
@@ -270,12 +269,12 @@ REVIEW_APPLICATION_FIELDS = {
                          'degree you have received).',)),
         ('Computer Programming', None),
         ('Computer Science (Algorithms)', None),
-        ('Statistics', None),
+        ('Traditional Statistics', None),
         ('Machine Learning', None),
-        ('Social Science (Economics, Sociology, etc.)', None),
+        ('Social Science (Economics, Sociology, PoliSci, ...)', None),
         ('Experience working on real-world problems using data', None),
-        ('Experimental Methods (RCTs, A/B testing, etc.)', None),
-        ('Data Skills (SQL, Data ETL)', None),
+        ('Experimental Design and Methods (RCTs, A/B testing, etc.)', None),
+        ('Data Manipulation and ETL Skills', None),
         ('Visualization', None),
         ('Python', None),
         ('C/C++/C#/Java', None),
@@ -298,14 +297,7 @@ REVIEW_APPLICATION_FIELDS = {
         ('Julia', None),
         ('Other', [('Other', 1)]),
         ('Analysis Experience', (
-            '''Tell us more about projects you have done with data analysis. \n'''
-            '''What tools did you use?\n'''
-            '''What algorithms/methods?\n'''
-            '''What format was the data in?\n'''
-            '''Did it come from multiple sources?\n'''
-            '''How did you store it?\n'''
-            '''Where did the output of the analysis go and how was it used '''
-            '''(thesis, report, use of the analysis)?''',
+            "Tell us more about projects you have done with data analysis, and the types of analysis you did",
         )),
         ('Regression Models', None),
         ('Decision Trees', None),
@@ -394,21 +386,20 @@ REVIEW_APPLICATION_FIELDS = {
         ('...Other', [('Other', 6)]),
         ('Other', ('Other:',)),
         ('Motivation / public sector experience', (
-            '''What is it about ‘social good’ work that you find compelling? '''
-            '''Tell us about your past experiences working in (or with) the '''
-            '''public sector (this can mean work or projects with governments '''
-            '''and nonprofits, volunteer work, or for-profit work with a '''
-            '''social mission). \n\n'''
-            '''What accomplishment are you most proud of in this area? In '''
-            '''two sentences, tell us what you found a) the most rewarding '''
-            '''and b) the most frustrating about these experiences.''',
+            '''What is it about ‘social good’ work that you find compelling? \n\n'''
+            '''Tell us about your past experiences working in (or with) the public sector '''
+            '''(this can mean work or projects with governments and nonprofits, volunteer '''
+            '''work, or for-profit work with a social mission). \n\n'''
+            '''What accomplishment are you most proud of in this area? '''
+            '''In two sentences, tell us what you found a) the most rewarding and '''
+            '''b) the most frustrating about these experiences.''',
         )),
         ('Teamwork', (
             '''DSSG is a team-centric environment. Tell us the three best '''
             '''qualities that you bring to a team (your experiences can be '''
             '''from school or from a job). \n\n'''
             '''Additionally, tell us one element of teamwork that you find '''
-            '''frustrating, and walk us through the process of how to like '''
+            '''frustrating, and walk us through the process of how you like '''
             '''to work through disagreements.\n\n'''
             '''How do you organize your work when working with a team? What '''
             '''collaboration tools did you use to work with a team? '''
@@ -434,9 +425,7 @@ REVIEW_APPLICATION_FIELDS = {
         #     '''I would like to be considered for a space in University Housing''',
         # )),
         ('Interested in DSaPP', (
-            '''I am currently available and interested in a post-summer '''
-            '''job opportunity at UChicago Center for Data Science and '''
-            'Public Policy',
+            '''I am currently available and interested in a post-summer job opportunity''',
         )),
         ('May share info', (
             '''I would like DSSG to share my info with social-good '''
@@ -444,7 +433,7 @@ REVIEW_APPLICATION_FIELDS = {
             '''sell your info.)''',
         )),
     )),
-    'survey_recommendation_2019': (
+    f'survey_recommendation_{REVIEW_PROGRAM_YEAR}': (
         'Reference {{ count }}', (
             ('Reference Name', ('First', 'Last')),
             ('Reference Email', ('Your Email',)),
@@ -459,10 +448,15 @@ REVIEW_APPLICATION_FIELDS = {
             ("Applicant's communication ability", ('Communication ability',)),
             ("Applicant's experience working in teams", ('Experience working in teams',)),
             ("Applicant's interest and passion for social good", ('Interest and passion for social good',)),
-			('''The fellowship is very competitive and we are looking for a '''
-             '''mix of people: smart, quantitative, analytical fellows who '''
-             '''care about using their skills to make a social impact. \n\n'''
-             '''In your opinion, should we accept this applicant?''', None),
+            ('Recommends applicant', (
+                '''The fellowship is very competitive and we are looking for a '''
+                '''mix of people: smart, quantitative, analytical fellows who '''
+                '''care about using their skills to make a social impact. \n\n'''
+                '''In your opinion, should we accept this applicant?''',
+            )),
+            ('What makes applicant stand out', (
+                '''What makes this candidate stand out for you?''',
+            )),
             ('Recommendation letter', (
                 '''Please upload a letter in Word document or PDF format '''
                 '''below or paste the text in the box below''',

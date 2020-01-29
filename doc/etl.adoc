@@ -1,0 +1,71 @@
+= Appy ETL
+
+Getting the apps into the Appy.
+
+As with many of Appy's management commands, ETL is implemented within Appy's Django framework; _and_, argcmdr management commands are available to handle common invocations of these, as well as to factor out execution via Docker container. This way, the application may be managed from an appropriately configured, local shell.
+
+Note that, in addition to the local set-up described in README.md, it is assumed that the local environment has been configured with appropriate variables, here mainly relating to the remote target database:
+
+    export PGHOST=localhost
+    export PGPORT=5434
+    export PGUSER=appy_reviews
+    export PGDATABASE=appy_reviews
+    export PGPASSWORD=!p@ssw0rd?
+    export DATABASE_URL=postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$PGDATABASE
+
+Though only `DATABASE_URL` above is actually required, the above form is recommended, to additionally enable easy access to the target database via `psql`.
+
+Also note that, in the above, the database host is set to `localhost` -- this reflects that the remote target database most likely cannot be connected to directly, and its connection must instead be tunneled. (For easy management of SSH tunnels, consider https://github.com/dssg/tunneldb[tunneldb].)
+
+ETL also requires the Wufoo API key:
+
+    export WUFOO_API_KEY=AAAA-BBBB-CCCC-DDDD
+
+With the above environment variables set, Appy's management commands will forward these to the ETL process.
+
+
+== Application stage
+
+The period before the fellowship's application deadline is here considered the "application stage." Management commands are capable of executing ETL across _all_ available data; however, this is _not_ recommended. Instead, we'd like only to process data for the current stage of the current program year. Importing data for the current program year _can_ be as simple as the following:
+
+    # import wufoo survey data for 2020
+    # (this works but is not recommended)
+    manage etl --year=2020 wufoo
+
+However, ETL management commands feature configuration preset flags for the stages of the process, which can be expected to ensure the best combination of settings for the given stage:
+
+    manage etl --stage=application wufoo
+
+[NOTE]
+====
+Because the current program year is not supplied to the above command, it *must* first be configured in Appy's `settings.py`: `REVIEW_PROGRAM_YEAR`.
+====
+
+=== Testing
+
+It is *strongly recommended* that all ETL commands are *tested*, at least once, for the program year. This ensures validity against changes in input data, _etc._
+
+As documented by its `--help` text, the above command enables you to either cache survey data as local CSV, or to run without actually writing to the database ("dry run"), or both:
+
+    manage etl -v2 --stage=application wufoo -n --csv
+
+=== Execution
+
+Application-stage ETL may be performed with the following individual commands.
+
+1. read Wufoo survey data into (raw data) database tables of the form `survey_NAME_YEAR`:
+
+    manage etl -v2 --stage=application wufoo
+
+2. upsert records into Appy's application tables:
+
+    manage etl -v2 --stage=application apps
+
+[NOTE]
+====
+Step 2 may be very slow! If you're concerned, you might ensure its operation and monitor its progress by inspection of database table `pg_stat_activity`.
+====
+
+Note also that the above two commands may be invoked at once with the `--all` flag:
+
+    manage etl -v2 --stage=application --all

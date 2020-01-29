@@ -15,7 +15,8 @@ APPLICANT_RAYID = ('Applicant Rayid', 'Applicant Ghani', 'rayidghani@gmail.com')
 
 
 APPLICATION_FORM2_URL = ('https://datascience.wufoo.com/forms/'
-                         '2019-dssg-fellowship-application-part-2/def/field461={app_email}')
+                         f'{settings.REVIEW_PROGRAM_YEAR}-dssg-fellowship-application-part-2/'
+                         'def/field461={app_email}')
 
 VALID_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
@@ -38,6 +39,11 @@ class Command(UnbrandedEmailCommand):
             '--test',
             action='store_true',
             help="send test emails to Jesse & Rayid",
+        )
+        parser.add_argument(
+            '-n', '--dry-run',
+            action='store_true',
+            help="do not actually send email",
         )
 
         subparsers = parser.add_subparsers(dest='target')
@@ -77,7 +83,7 @@ class Command(UnbrandedEmailCommand):
                  "database-compatible timestamp (e.g.: 2004-10-19T10:23:54)",
         )
 
-    def handle(self, target, template, test, verbosity, since=None, **_options):
+    def handle(self, target, template, test, dry_run, verbosity, since=None, **_options):
         data_handler = getattr(self, f'stream_{target}s')
 
         for ((app_first, app_last, app_email), reminder_targets) in data_handler(since=since,
@@ -88,14 +94,15 @@ class Command(UnbrandedEmailCommand):
                 continue
 
             if verbosity >= 2:
+                action = 'WOULD mail (dry run)' if dry_run else 'emailing'
                 print(
-                    "on behalf of:" if target == 'reference' else 'emailing:',
+                    "on behalf of:" if target == 'reference' else f'{action}:',
                     app_first,
                     app_last,
                     f"({app_email})",
                 )
                 if target == 'reference':
-                    print("    emailing:", ' and '.join(ref[2] for ref in reminder_targets))
+                    print(f"    {action}:", ' and '.join(ref[2] for ref in reminder_targets))
 
             application_link = mark_safe(APPLICATION_FORM2_URL.format(app_email=app_email))
             reference_link = mark_safe(REFERENCE_FORM_URL.format(app_email=app_email))
@@ -105,6 +112,9 @@ class Command(UnbrandedEmailCommand):
                     if target_first or target_last or target_email:
                         print("WARNING: skipping malformed reminder target",
                               repr(app_first), repr(app_last), repr(app_email), file=sys.stderr)
+                    continue
+
+                if dry_run:
                     continue
 
                 self.send_mail(template, target_email, {

@@ -568,7 +568,8 @@ class Etl(DbLocal):
             '--stage',
             choices=('application', 'review'),
             help="configuration preset depending on whether the application "
-                 "period is still open or applications are now under review",
+                 "period is still open or applications are now under review "
+                 "(and which reads year from settings)",
         )
         parser.add_argument(
             '--all',

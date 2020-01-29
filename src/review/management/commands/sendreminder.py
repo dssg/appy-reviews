@@ -1,8 +1,11 @@
 import argparse
 import datetime
+import re
 import sys
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import connection
 from django.utils.safestring import mark_safe
 
@@ -10,13 +13,11 @@ from . import APPLICANT_SURVEY_FIELDS, REFERENCE_FORM_URL
 from .base import UnbrandedEmailCommand
 
 
-APPLICANT_JESSE = ('Applicant Jesse', 'Applicant London', 'jesselondon@gmail.com')
-APPLICANT_RAYID = ('Applicant Rayid', 'Applicant Ghani', 'rayidghani@gmail.com')
-
-
 APPLICATION_FORM2_URL = ('https://datascience.wufoo.com/forms/'
                          f'{settings.REVIEW_PROGRAM_YEAR}-dssg-fellowship-application-part-2/'
                          'def/field461={app_email}')
+
+EMAIL_RECIPIENT_PATTERN = re.compile(r'([^ <>]+) +([^ <>]+) *<([^>]+)>')
 
 VALID_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
@@ -37,8 +38,10 @@ class Command(UnbrandedEmailCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             '--test',
-            action='store_true',
-            help="send test emails to Jesse & Rayid",
+            action='append',
+            metavar='RECIPIENT',
+            help="send test emails only to recipient(s) in the form: "
+                 '"First Last <name@domain.com>"',
         )
         parser.add_argument(
             '-n', '--dry-run',
@@ -128,14 +131,37 @@ class Command(UnbrandedEmailCommand):
                 })
 
     @staticmethod
-    def stream_applicants(since=None, test=False):
+    def get_test_recipients(test_lines, name_prefix):
+        for (recipient_index, recipient_line) in enumerate(test_lines):
+            recipient_match = EMAIL_RECIPIENT_PATTERN.search(recipient_line)
+            if recipient_match:
+                (applicant_first, applicant_last, applicant_email) = recipient_match.groups()
+            else:
+                applicant_first = f'First{recipient_index}'
+                applicant_last = f'Last{recipient_index}'
+                applicant_email = recipient_line
+
+            try:
+                validate_email(applicant_email)
+            except ValidationError:
+                print("[fatal] invalid test address:", applicant_email, file=sys.stderr)
+                continue
+
+            yield (
+                f'{name_prefix} {applicant_first}',
+                f'{name_prefix} {applicant_last}',
+                applicant_email,
+            )
+
+    @classmethod
+    def stream_applicants(cls, since=None, test=False):
         if since is not None:
             raise NotImplementedError
 
         if test:
-            # (applicant info, target infos)
-            yield (APPLICANT_JESSE, [APPLICANT_JESSE])
-            yield (APPLICANT_RAYID, [APPLICANT_RAYID])
+            for applicant_info in cls.get_test_recipients(test, 'Applicant'):
+                # (applicant info, target infos)
+                yield (applicant_info, [applicant_info])
 
             return
 
@@ -161,27 +187,21 @@ class Command(UnbrandedEmailCommand):
                 # (applicant info, [targets: the applicant])
                 yield (row, [row])
 
-    @staticmethod
-    def stream_references(since=None, test=False):
+    @classmethod
+    def stream_references(cls, since=None, test=False):
         if test:
             if since is not None:
                 raise NotImplementedError
 
-            yield (
-                APPLICANT_JESSE,
-                (
-                    ('Reference Rayid', 'Reference Ghani', 'rayidghani@gmail.com'),
-                    ('Reference Rayid', 'Reference Ghani', 'rayid@uchicago.edu'),
-                ),
-            )
+            for (applicant_index, applicant_info) in enumerate(cls.get_test_recipients(test, 'Applicant')):
+                applicant_references = [
+                    reference_info
+                    for (reference_index, reference_info)
+                    in enumerate(cls.get_test_recipients(test, 'Reference'))
+                    if reference_index != applicant_index
+                ]
 
-            yield (
-                APPLICANT_RAYID,
-                (
-                    ('Reference Jesse', 'Reference London', 'jesselondon@gmail.com'),
-                    ('Reference Jesse', 'Reference London', 'jslondon@uchicago.edu'),
-                ),
-            )
+                yield (applicant_info, applicant_references)
 
             return
 

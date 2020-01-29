@@ -40,16 +40,20 @@ DEBUG = bool_environ('APPY_DEBUG')
 
 CANONICAL_HOST = 'review.dssg.io'
 STAGING_HOST = f's.{CANONICAL_HOST}'
+EXTRA_HOSTS = [
+    extra_host1 for extra_host1 in (
+	extra_host0.strip() for extra_host0 in os.getenv('ALLOWED_HOSTS', '').split(',')
+    ) if extra_host1
+]
 
 if DEBUG:
     EC2_PRIVATE_IP = None
 else:
     ALLOWED_HOSTS = [
-	'appy-reviews-pro.c64mkkpvyn.us-west-2.elasticbeanstalk.com',
-	'appy-reviews-dev.c64mkkpvyn.us-west-2.elasticbeanstalk.com',
         CANONICAL_HOST,
 	STAGING_HOST,
     ]
+    ALLOWED_HOSTS.extend(EXTRA_HOSTS)
 
     try:
         response = requests.get(

@@ -34,7 +34,7 @@ FORMS = (
     r'(?:(?:[- ]+part)? (\d))?$',
 
     # reviewer form
-    r'^(\d+) dssg application (reviewer) registration$',
+    r'^(\d+) dssg application (reviewer) (?:registration|signup)$',
 )
 
 ENTRY_PAGE_SIZE = 100  # (Also the API default)
@@ -133,7 +133,7 @@ class Command(BaseCommand):
         elif stage == 'review':
             filters.extend((
                 f'^{settings.REVIEW_PROGRAM_YEAR} ',
-                'reviewer registration|fellow recommendation',
+                'reviewer (?:registration|signup)|fellow recommendation',
             ))
             if target == '.':
                 target = '-'

@@ -46,7 +46,7 @@ class Command(BaseCommand):
             '--closed',
             action='store_true',
             help="Treat the fellow application submission period as closed -- "
-                 "no fellow applications will be loaded.",
+                 "reviewers will be loaded, but no fellow applications.",
         )
         parser.add_argument(
             '-y', '--year',
@@ -82,13 +82,13 @@ class Command(BaseCommand):
         with connection.cursor() as cursor:
             try:
                 with transaction.atomic():
-                    handler(cursor, entity_id_field, year, closed)
+                    handler(cursor, entity_id_field, year, closed, dry_run)
                     if dry_run:
                         raise DryRunAbort()
             except DryRunAbort:
                 self.stdout.write('transaction rolled back for dry run')
 
-    def command_inspect(self, cursor, _entity_id_field, _year, _closed):
+    def command_inspect(self, cursor, _entity_id_field, _year, _closed, _dry_run):
         self.write_table(
             [('table', 'raw', 'linked')] +
             [
@@ -127,7 +127,7 @@ class Command(BaseCommand):
             'recommendations loaded',
         )
 
-    def command_execute(self, cursor, entity_id_field, year, closed):
+    def command_execute(self, cursor, entity_id_field, year, closed, dry_run):
         # load field names
         # NOTE: There are 3 "Email" columns in the "first" (second?) survey;
         # NOTE: though, the field IDs appear to overlap across surveys, and
@@ -186,16 +186,21 @@ class Command(BaseCommand):
         # load reviewer concessions
         concessions_processed = concessions_created = 0
 
-        # FIXME: static field IDs
-        cursor.execute(f'''\
-            select "Field3" email, (
-                case when "Field7" is null then false else true end
-            ) is_reviewer, (
-                case when "Field8" is null then false else true end
-            ) is_interviewer
-            from "{self.reviewer_table_name}"
-        ''')
-        for (concessions_processed, reviewer_data) in enumerate(cursor, concessions_processed + 1):
+        if closed:
+            # FIXME: static field IDs
+            cursor.execute(f'''\
+                select "Field3" email, (
+                    case when "Field7" is null then false else true end
+                ) is_reviewer, (
+                    case when "Field8" is null then false else true end
+                ) is_interviewer
+                from "{self.reviewer_table_name}"
+            ''')
+            reviewer_rows = cursor
+        else:
+            reviewer_rows = ()
+
+        for (concessions_processed, reviewer_data) in enumerate(reviewer_rows, concessions_processed + 1):
             reviewer_election = {
                 col.name: value
                 for (col, value) in zip(cursor.description, reviewer_data)
@@ -223,7 +228,7 @@ class Command(BaseCommand):
                     defaults=reviewer_election,
                 )
 
-            if created:
+            if created and not dry_run:
                 if concession.is_reviewer or concession.is_interviewer:
                     management.call_command('sendinvite', reviewer_email)
 

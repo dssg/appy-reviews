@@ -1,5 +1,6 @@
 import contextlib
 import enum
+import functools
 import os
 import sys
 from argparse import REMAINDER
@@ -460,11 +461,42 @@ class Develop(DbLocal):
             SMTP_PASSWORD=None,
         )
 
+    def _container_hint(func):
+        """Decorator to catch `exec`-based commands' "no such container"
+        error and print helpful hint.
+
+        """
+        @functools.wraps(func)
+        def wrapped(self, args):
+            try:
+                yield from func(self, args)
+            except self.local.ProcessExecutionError:
+                # check whether development container running
+                (_retcode, output, _error) = yield self.local['docker'][
+                    'ps',
+                    '--filter', f'name={args.name}',
+                    '--quiet',
+                ]
+
+                if output:
+                    # ...it appears to be running, so this is some other issue
+                    raise
+
+                # not running; provide hint:
+                print(
+                    "Hint: Start the development container "
+                    "(see `manage develop --help`)",
+                    file=sys.stderr,
+                )
+
+        return wrapped
+
     @localmethod('mcmd', metavar='command', choices=CONTROLS,
                  help="{{{}}}".format(', '.join(CONTROLS)))
+    @_container_hint
     def control(self, args):
         """control the appy-reviews supervisor process"""
-        return self.local['docker'][
+        yield self.local['docker'][
             'exec',
             args.name,
             'supervisorctl',
@@ -477,9 +509,10 @@ class Develop(DbLocal):
     @localmethod('remainder', metavar='command arguments', nargs=REMAINDER)
     @localmethod('mcmd', metavar='command', help="django management command")
     @localmethod('-u', '--user', default='webapp', help='container user (default: webapp)')
+    @_container_hint
     def djmanage(self, args):
         """manage the appy-reviews django project"""
-        return (
+        yield (
             # foreground command to fully support shell
             self.local.FG,
             self.local['docker'][
@@ -492,6 +525,8 @@ class Develop(DbLocal):
                 args.remainder,
             ]
         )
+
+    _container_hint = staticmethod(_container_hint)
 
 
 @Appy.register

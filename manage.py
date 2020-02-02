@@ -649,14 +649,18 @@ class Etl(DbLocal):
     @localmethod('-d', '--dry-run', action='store_true',
                  help="do not commit database transactions so as to test effect "
                       "of command")
+    @localmethod('--invite-only', action='append', metavar='EMAIL',
+                 help="consider only *these* reviewer records, indicated by email "
+                      "address, and do not process any other dataset")
     def apps(self, args):
         """map wufoo data into appy"""
-        return self.manage()[
+        return self.manage(SMTP_USER=None, SMTP_PASSWORD=None)[
             'loadapps',
             (('-s', f'_{args.year}') if args.year else ()),
             (('--year', args.year) if args.year else ()),
             (('--closed',) if args.stage == 'review' else ()),
             ('--dry-run' if args.dry_run else ()),
+            ([f'--invite-only={email}' for email in args.invite_only] if args.invite_only else ()),
             args.subcommand,
         ]
 

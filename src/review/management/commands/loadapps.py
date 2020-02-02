@@ -1,18 +1,30 @@
+import argparse
+
 from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.core import management
-from django.core.management.base import BaseCommand
+from django.core.exceptions import ValidationError
+from django.core.management.base import BaseCommand, CommandError
+from django.core.validators import validate_email
 from django.db import connection, transaction
 from terminaltables import AsciiTable
 
 from review import models
 
 
-class DryRunAbort(RuntimeError):
-    pass
+def make_email(value, lower=True):
+    try:
+        validate_email(value)
+    except ValidationError as exc:
+        raise argparse.ArgumentTypeError(exc)
+
+    return value.lower() if lower else value
 
 
 class Command(BaseCommand):
+
+    class DryRunAbort(RuntimeError):
+        pass
 
     help = (
         "Map Wufoo application/survey data into the Review Web application. "
@@ -49,6 +61,14 @@ class Command(BaseCommand):
                  "reviewers will be loaded, but no fellow applications.",
         )
         parser.add_argument(
+            '--invite-only',
+            action='append',
+            metavar='EMAIL',
+            type=make_email,
+            help="Consider only *these* reviewer records, indicated by email "
+                 "address, and do not process any other dataset",
+        )
+        parser.add_argument(
             '-y', '--year',
             default=settings.REVIEW_PROGRAM_YEAR,
             type=int,
@@ -71,24 +91,30 @@ class Command(BaseCommand):
         table = AsciiTable(*args, **kwargs)
         self.stdout.write(table.table)
 
-    def handle(self, entity_id_field, suffix, closed, year, subcommand, dry_run, **_options):
+    def handle(self, entity_id_field, suffix, closed, year, subcommand, invite_only, dry_run, **_options):
         self.survey_1_table_name = 'survey_application_1' + suffix
         self.survey_2_table_name = 'survey_application_2' + suffix
         self.recommendation_table_name = 'survey_recommendation' + suffix
         self.reviewer_table_name = 'survey_reviewer' + suffix
         self.fields_2_table_name = 'survey_application_2_fields' + suffix
 
+        if closed and invite_only:
+            raise CommandError(
+                "incompatible arguments (--closed, --invite-only) "
+                "... nothing to do"
+            )
+
         handler = getattr(self, 'command_' + subcommand)
         with connection.cursor() as cursor:
             try:
                 with transaction.atomic():
-                    handler(cursor, entity_id_field, year, closed, dry_run)
+                    handler(cursor, entity_id_field, year, closed, invite_only, dry_run)
                     if dry_run:
-                        raise DryRunAbort()
-            except DryRunAbort:
+                        raise self.DryRunAbort()
+            except self.DryRunAbort:
                 self.stdout.write('transaction rolled back for dry run')
 
-    def command_inspect(self, cursor, _entity_id_field, _year, _closed, _dry_run):
+    def command_inspect(self, cursor, _entity_id_field, _year, _closed, _invite_only, _dry_run):
         self.write_table(
             [('table', 'raw', 'linked')] +
             [
@@ -127,7 +153,7 @@ class Command(BaseCommand):
             'recommendations loaded',
         )
 
-    def command_execute(self, cursor, entity_id_field, year, closed, dry_run):
+    def command_execute(self, cursor, entity_id_field, year, closed, invite_only, dry_run):
         # load field names
         # NOTE: There are 3 "Email" columns in the "first" (second?) survey;
         # NOTE: though, the field IDs appear to overlap across surveys, and
@@ -142,7 +168,7 @@ class Command(BaseCommand):
 
         # load application pages
         page_processed = page_created = 0
-        survey_table_names = () if closed else (
+        survey_table_names = () if (closed or invite_only) else (
             self.survey_1_table_name,
             self.survey_2_table_name,
         )
@@ -170,10 +196,14 @@ class Command(BaseCommand):
             'table_name': self.recommendation_table_name,
             'column_name': entity_id_field,
         }
-        cursor.execute(f'''
-            select "{entity_id_field}", "{applicant_email_field}"
-            from "{self.recommendation_table_name}"
-        ''')
+        if invite_only:
+            recommendation_rows = ()
+        else:
+            cursor.execute(f'''
+                select "{entity_id_field}", "{applicant_email_field}"
+                from "{self.recommendation_table_name}"
+            ''')
+            recommendation_rows = cursor
         for (recommendation_processed, (entity_id, applicant_email)) in enumerate(cursor, recommendation_processed + 1):
             entity_signature = dict(recommendation_signature, entity_code=entity_id)
             with transaction.atomic():
@@ -186,7 +216,7 @@ class Command(BaseCommand):
         # load reviewer concessions
         concessions_processed = concessions_created = 0
 
-        if closed:
+        if closed or invite_only:
             # FIXME: static field IDs
             cursor.execute(f'''\
                 select "Field3" email, (
@@ -206,6 +236,9 @@ class Command(BaseCommand):
                 for (col, value) in zip(cursor.description, reviewer_data)
             }
             reviewer_email = reviewer_election.pop('email')
+
+            if invite_only and reviewer_email.lower() not in invite_only:
+                continue
 
             with transaction.atomic():
                 try:
@@ -228,9 +261,12 @@ class Command(BaseCommand):
                     defaults=reviewer_election,
                 )
 
-            if created and not dry_run:
+            if created:
                 if concession.is_reviewer or concession.is_interviewer:
-                    management.call_command('sendinvite', reviewer_email)
+                    if dry_run:
+                        self.stdout.write(f"WOULD email (dry run): {reviewer_email}")
+                    else:
+                        management.call_command('sendinvite', reviewer_email)
 
                 concessions_created += 1
 

@@ -415,6 +415,38 @@
 
     <script type="text/javascript">
         (function (window) {
+            /* transform links to wufoo-uploaded documents to provide
+             * options "download" and "view in google docs"
+             */
+            'use strict';
+
+            var docLinks;
+
+            docLinks = window.document
+                        .querySelector('section.column-content')
+                        .querySelectorAll('a[href^="https://datascience.wufoo.com/cabinet/"]');
+
+            if (docLinks.forEach === undefined) {
+                // some browsers like Internet Explorer don't support this ...
+                // so forget about 'em
+                return;
+            }
+
+            docLinks.forEach(function (anchor) {
+                var viewerUrl = 'https://docs.google.com/viewer?url=' + anchor.href;
+
+                anchor.innerHTML = "download";
+                anchor.insertAdjacentHTML(
+                    'afterend',
+                    ' | ' +
+                    '<a href="' + viewerUrl + '" rel="nofollow">view with google docs<a>'
+                );
+            });
+        })(window);
+
+        (function (window) {
+            /* open in new window all links in application contents
+             */
             'use strict';
 
             window.document

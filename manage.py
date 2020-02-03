@@ -656,7 +656,11 @@ class Etl(DbLocal):
                       "address, and do not process any other dataset")
     def apps(self, args):
         """map wufoo data into appy"""
-        return self.manage(SMTP_USER=None, SMTP_PASSWORD=None)[
+        return self.manage(
+            SLACK_URL=None,
+            SMTP_USER=None,
+            SMTP_PASSWORD=None,
+        )[
             'loadapps',
             (('-s', f'_{args.year}') if args.year else ()),
             (('--year', args.year) if args.year else ()),

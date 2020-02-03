@@ -518,6 +518,8 @@ class Develop(DbLocal):
             self.local['docker'][
                 'exec',
                 '-it',
+                # users have no $HOME, so tell ipython, et al to look elsewhere:
+                '-e', 'XDG_CACHE_HOME=/tmp/xdg-cache/',
                 '--user', args.user,
                 args.name,
                 './manage.py',

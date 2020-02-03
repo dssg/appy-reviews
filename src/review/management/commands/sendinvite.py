@@ -54,31 +54,34 @@ class Command(LabelCommand):
                     reviewer = Reviewer.objects.create_reviewer(email, None)
                 except IntegrityError:
                     pass
+                else:
+                    try:
+                        email_address = EmailAddress.objects.get_for_user(reviewer, email)
+                    except EmailAddress.DoesNotExist:
+                        email_address = EmailAddress.objects.create(
+                            user=reviewer,
+                            email=email,
+                        )
 
             if not reviewer:
                 try:
-                    reviewer = Reviewer.objects.get(email=email)
-                except Reviewer.DoesNotExist:
+                    email_address = EmailAddress.objects.get(email__iexact=email)
+                except EmailAddress.MultipleObjectsReturned:
+                    raise CommandError(f'{email}: multiple records')
+                except EmailAddress.DoesNotExist:
                     raise CommandError(f'{email}: no such reviewer')
+                else:
+                    reviewer = email_address.user
         except CommandError as exc:
             if force:
                 self.stderr.write(f'✘ {exc}')
                 return
             raise
 
-        self.send_email(reviewer, template)
+        self.send_email(reviewer, email_address, template)
         self.stdout.write(f'✔ {email}')
 
-    def send_email(self, reviewer, template):
-        try:
-            email_address = EmailAddress.objects.get_for_user(reviewer,
-                                                              reviewer.email)
-        except EmailAddress.DoesNotExist:
-            email_address = EmailAddress.objects.create(
-                user=reviewer,
-                email=reviewer.email,
-            )
-
+    def send_email(self, reviewer, email_address, template):
         site_url = 'https://' + settings.CANONICAL_HOST
         if email_address.verified:
             activate_url = site_url + '/'
@@ -87,8 +90,9 @@ class Command(LabelCommand):
             activate_url = site_url + reverse('account_confirm_email',
                                               args=[confirmation.key])
 
-        self.adapter.send_mail(template, reviewer.email, {
+        self.adapter.send_mail(template, email_address.email, {
             'user': reviewer,
+            'email': email_address.email,
             'activate_url': activate_url,
             'domain': settings.CANONICAL_HOST,
             'program_year': settings.REVIEW_PROGRAM_YEAR,

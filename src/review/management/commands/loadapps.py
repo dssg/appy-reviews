@@ -69,6 +69,14 @@ class Command(BaseCommand):
                  "address, and do not process any other dataset",
         )
         parser.add_argument(
+            '--email-ignore',
+            action='append',
+            metavar='EMAIL',
+            type=make_email,
+            help="Do not email these reviewers, indicated by email address, "
+                 "(and do still process other datasets)",
+        )
+        parser.add_argument(
             '-y', '--year',
             default=settings.REVIEW_PROGRAM_YEAR,
             type=int,
@@ -91,7 +99,7 @@ class Command(BaseCommand):
         table = AsciiTable(*args, **kwargs)
         self.stdout.write(table.table)
 
-    def handle(self, entity_id_field, suffix, closed, year, subcommand, invite_only, dry_run, **_options):
+    def handle(self, entity_id_field, suffix, closed, year, subcommand, invite_only, email_ignore, dry_run, **_options):
         self.survey_1_table_name = 'survey_application_1' + suffix
         self.survey_2_table_name = 'survey_application_2' + suffix
         self.recommendation_table_name = 'survey_recommendation' + suffix
@@ -104,17 +112,20 @@ class Command(BaseCommand):
                 "... nothing to do"
             )
 
+        if invite_only and email_ignore:
+            raise CommandError("incompatible arguments (--invite-only, --email-ignore)")
+
         handler = getattr(self, 'command_' + subcommand)
         with connection.cursor() as cursor:
             try:
                 with transaction.atomic():
-                    handler(cursor, entity_id_field, year, closed, invite_only, dry_run)
+                    handler(cursor, entity_id_field, year, closed, invite_only, email_ignore, dry_run)
                     if dry_run:
                         raise self.DryRunAbort()
             except self.DryRunAbort:
                 self.stdout.write('transaction rolled back for dry run')
 
-    def command_inspect(self, cursor, _entity_id_field, _year, _closed, _invite_only, _dry_run):
+    def command_inspect(self, cursor, _entity_id_field, _year, _closed, _invite_only, _email_ignore, _dry_run):
         self.write_table(
             [('table', 'raw', 'linked')] +
             [
@@ -153,7 +164,7 @@ class Command(BaseCommand):
             'recommendations loaded',
         )
 
-    def command_execute(self, cursor, entity_id_field, year, closed, invite_only, dry_run):
+    def command_execute(self, cursor, entity_id_field, year, closed, invite_only, email_ignore, dry_run):
         # load field names
         # NOTE: There are 3 "Email" columns in the "first" (second?) survey;
         # NOTE: though, the field IDs appear to overlap across surveys, and
@@ -230,6 +241,8 @@ class Command(BaseCommand):
         else:
             reviewer_rows = ()
 
+        invitation_emails = []
+
         for (concessions_processed, reviewer_data) in enumerate(reviewer_rows, concessions_processed + 1):
             reviewer_election = {
                 col.name: value
@@ -263,10 +276,8 @@ class Command(BaseCommand):
 
             if created:
                 if concession.is_reviewer or concession.is_interviewer:
-                    if dry_run:
-                        self.stdout.write(f"WOULD email (dry run): {reviewer_email}")
-                    else:
-                        management.call_command('sendinvite', reviewer_email)
+                    if not email_ignore or reviewer_email.lower() not in email_ignore:
+                        invitation_emails.append(reviewer_email)
 
                 concessions_created += 1
 
@@ -276,3 +287,9 @@ class Command(BaseCommand):
             ('recommendations', recommendation_processed, recommendation_created),
             ('reviewer concessions', concessions_processed, concessions_created),
         ], 'results')
+
+        if dry_run:
+            for invitation_email in invitation_emails:
+                self.stdout.write(f"WOULD email (dry run): {invitation_email}")
+        elif invitation_emails:
+            management.call_command('sendinvite', *invitation_emails)

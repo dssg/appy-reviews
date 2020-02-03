@@ -654,6 +654,9 @@ class Etl(DbLocal):
     @localmethod('--invite-only', action='append', metavar='EMAIL',
                  help="consider only *these* reviewer records, indicated by email "
                       "address, and do not process any other dataset")
+    @localmethod('--email-ignore', action='append', metavar='EMAIL',
+                 help="Do not email these reviewers, indicated by email address, "
+                      "(and do still process other datasets)")
     def apps(self, args):
         """map wufoo data into appy"""
         return self.manage(
@@ -667,6 +670,7 @@ class Etl(DbLocal):
             (('--closed',) if args.stage == 'review' else ()),
             ('--dry-run' if args.dry_run else ()),
             ([f'--invite-only={email}' for email in args.invite_only] if args.invite_only else ()),
+            ([f'--email-ignore={email}' for email in args.email_ignore] if args.email_ignore else ()),
             args.subcommand,
         ]
 

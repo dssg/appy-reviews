@@ -203,12 +203,21 @@ def reviewer_review_counts():
             ),
         )
         .filter(
+            # Must specify first general condition to include reviewers who *did not*
+            # indicate interest in reviewing this year (perhaps only in interviewing)
+            # yet who submitted reviews *anyway*...
             Q(review_count__gt=0) |
+            # ...as well as second condition, (which would otherwise be sufficient --
+            # and vice-versa), to include reviewers who haven't yet submitted any
+            # reviews this year, yet who *did* indicate interest in doing so.
             Q(
                 concessions__is_reviewer=True,
                 concessions__program_year=settings.REVIEW_PROGRAM_YEAR,
             )
         )
+        # ...and only because of the above OR, (and because we now have some
+        # reviewers with multiple years of concessions), we must dedupe:
+        .distinct()
         .values('email', 'last_review', 'review_count', 'interview_count',
                 'maybe_interview_count', 'only_if_count', 'reject_count')
         .order_by('-review_count', 'email')

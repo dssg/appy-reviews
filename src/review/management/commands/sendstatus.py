@@ -1,4 +1,5 @@
 import itertools
+import urllib
 import sys
 from collections import namedtuple
 
@@ -13,7 +14,7 @@ from .base import UnbrandedEmailCommand
 
 class Command(UnbrandedEmailCommand):
 
-    help = ("Send final status emails (to applicants -- unimplemented -- and) "
+    help = ("Send final status emails to applicants and "
             "reminders to unsubmitted references")
 
     def add_arguments(self, parser):
@@ -41,7 +42,7 @@ class Command(UnbrandedEmailCommand):
             '--incomplete',
             action='store_true',
             dest='opt_incomplete',
-            help="notify applicants who did not complete their applications",
+            help="notify applicants who did not complete their applications (UNIMPLEMENTED)",
         )
         parser.add_argument(
             '--unsubmitted',
@@ -55,13 +56,13 @@ class Command(UnbrandedEmailCommand):
             action='store_true',
             dest='opt_complete',
             help="notify applicants with completed applications and at least "
-                 "two references",
+                 "two references (UNIMPLEMENTED)",
         )
         parser.add_argument(
             '--all-applicants',
             action='store_true',
             dest='opt_all_applicants',
-            help="notify all applicants of their statuses",
+            help="notify all applicants of their statuses (UNIMPLEMENTED)",
         )
 
         parser.add_argument(
@@ -86,6 +87,14 @@ class Command(UnbrandedEmailCommand):
             metavar='PATH',
             help="reference email template prefix "
                  "(default: review/email/reference_reminder)",
+        )
+        parser.add_argument(
+            '--references-late',
+            dest='opt_references_template',
+            action='store_const',
+            const='review/email/reference_status',
+            help="use post-deadline reference email template "
+                 "(prefix: review/email/reference_status)",
         )
 
     def send_mail(self, template, address, context, on_behalf=None):
@@ -128,8 +137,8 @@ class Command(UnbrandedEmailCommand):
             print(sql_statement())
             return
 
-        if opt_incomplete or opt_unsubmitted or opt_complete or opt_all_applicants:
-            # This is intended largely for them; but, Rayid handled this, this year
+        if opt_incomplete or opt_complete or opt_all_applicants:
+            # This is intended largely for them; but, Rayid handled these, this year
             raise NotImplementedError
 
         if opt_all_applicants and (opt_incomplete or opt_unsubmitted or opt_complete):
@@ -151,11 +160,13 @@ class Command(UnbrandedEmailCommand):
                     # nothing more to do with incomplete applications
                     continue
 
+            reference_link = REFERENCE_FORM_URL.format(
+                app_email=urllib.parse.quote_plus(result.app_email),
+            )
             references_submitted = (result.ref0_submitted, result.ref1_submitted)
             if not all(references_submitted) and opt_references and (result.app_completed or
                                                                      not opt_references_complete):
                 app_references = (result[3:6], result[6:9])
-                reference_link = REFERENCE_FORM_URL.format(app_email=result.app_email)
 
                 for ((ref_first,
                       ref_last,
@@ -179,8 +190,18 @@ class Command(UnbrandedEmailCommand):
                         )
 
             if len(result.references) < 2:
-                if opt_unsubmitted:
-                    raise NotImplementedError
+                if opt_unsubmitted and result.app_completed:
+                    self.send_mail(
+                        'review/email/applicant_references',
+                        result.app_email,
+                        {
+                            'applicant_first': result.app_first,
+                            'applicant_last': result.app_last,
+                            'reference': result.references[0] if result.references else None,
+                            'reference_link': mark_safe(reference_link),
+                            'program_year': settings.REVIEW_PROGRAM_YEAR,
+                        },
+                    )
 
             else:
                 if opt_complete:
@@ -272,20 +293,32 @@ def stream_test(emails):
     email_stream = iter(emails)
     for count in itertools.count():
         try:
+            (app_email, ref0_email, ref1_email) = itertools.islice(email_stream, 3)
+        except ValueError:
+            break
+        else:
+            (app_completed, ref0_submitted, ref1_submitted) = (True, True, False)
+
+            reference0 = [f'Reference0 {count} First', f'Reference0 {count} Last', ref0_email]
+            reference1 = [f'Reference1 {count} First', f'Reference1 {count} Last', ref1_email]
+
             yield ApplicationStatus(
                 f'Applicant {count} First',
                 f'Applicant {count} Last',
-                next(email_stream),
-                f'Reference0 {count} First',
-                f'Reference0 {count} Last',
-                next(email_stream),
-                f'Reference1 {count} First',
-                f'Reference1 {count} Last',
-                next(email_stream),
-                True,
-                True,
-                False,
-                [],
+                app_email,
+                reference0[0],
+                reference0[1],
+                ref0_email,
+                reference1[0],
+                reference1[1],
+                ref1_email,
+                app_completed,
+                ref0_submitted,
+                ref1_submitted,
+                [
+                    ref for (ref, ref_submitted) in (
+                        (reference0, ref0_submitted),
+                        (reference1, ref1_submitted)
+                    ) if ref_submitted
+                ],
             )
-        except StopIteration:
-            break

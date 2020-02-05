@@ -1,0 +1,70 @@
+= Data assessment queries
+
+Here you'll find commonly used SQL queries for determining the state of the data, primarily for auditing ETL and emailing commands.
+
+NOTE: These could be wrong! The point of auditing is not to blindly trust that such things are correct and up-to-date. But, better to hold onto these, than to waste time recreating and debugging them ad-hoc.
+
+Feel free to copy/paste, load these into your database client of choice, _etc._
+
+== Example: notifying applicants missing letters of reference
+
+The `sendstatus --unsubmitted` command sends post-deadline emails to applicants with completed applications, but with fewer than two distinct letters of recommendation.
+
+We can test what this command will do with the `--test-email` and `--dry-run` flags. Here we'll compare the applicants whom it determines it should target to those we think it should, based on a simple SQL query.
+
+This command is currently executable locally as:
+
+    manage develop djmanage sendstatus --unsubmitted --dry-run
+
+IMPORTANT: Note the `--dry-run` flag. We don't want to actually send emails yet!
+
+This command has the following output:
+
+    would-email Email0@address.com
+    would-email email1@Address.Com
+    ...
+
+And so, we'll also use `awk` to grab only the second column of output. And, because ultimately our comparison command will use a subprocess without a proper terminal, we'll pass the `--no-tty` flag:
+
+    $ manage develop djmanage --no-tty sendstatus --unsubmitted --dry-run | awk '{print $2}'
+    Email0@address.com
+    email1@Address.Com
+    ...
+
+Now we can generate our _expected_ recipients for this email from link:./completed-apps-missing-recs.sql[completed-apps-missing-recs.sql], for example:
+
+    $ psql -f ./doc/query/completed-apps-missing-recs.sql
+              applicant email
+    -----------------------------------
+     email0@address.com
+     email1@address.com
+     ...
+
+And, similar to the above, we can instruct `psql` to return results without decoration:
+
+    $ psql -tAf ./doc/query/completed-apps-missing-recs.sql
+    email0@address.com
+    email1@address.com
+    ...
+
+Finally, we can put it all together, comparing the two sets of results with the `diff` command, (and some Bash redirection magic):
+
+    $ diff <(psql -tAf ./doc/query/completed-apps-missing-recs.sql) <(manage develop djmanage --no-tty sendstatus --dry-run --unsubmitted | awk '{print $2}')
+    25c25
+    < email0@address.com
+    ---
+    > Email0@address.com
+    138c138
+    < email1@address.com
+    ---
+    > email1@Address.Com
+
+In the above (fake) output, it looks like some lines differed ... but only due to capitalization! (Which doesn't matter for email addresses.) So, in _this_ case, it checks out.
+
+To clarify matters, we can extend our processing of the output of `sendstatus`, using `tr`, (and this time for clarity we'll write our command on multiple lines):
+
+    $ diff \
+    > <(psql -tAf ./doc/query/completed-apps-missing-recs.sql) \
+    > <(manage develop djmanage --no-tty sendstatus --dry-run --unsubmitted | awk '{print $2}' | tr '[:upper:]' '[:lower:]')
+
+And now `diff` should report no differences between the results.

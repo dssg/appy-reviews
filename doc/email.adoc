@@ -1,0 +1,73 @@
+= Email with Appy
+
+[NOTE]
+====
+As of yet, there is no argcmdr `manage` command for execution of these, (unlike with ETL). As such, these commands require a locally-running development container:
+
+    manage develop
+
+(But! It's not hard to add such commands….)
+====
+
+== Pre-deadline Reminders
+
+=== Testing
+
+It is a very good idea to test commands, first, to check:
+
+* email content and rendering (with test targets)
+* loaded data (with dry runs)
+* programming & human logic (with all the above)
+
+TIP: You can find archived SQL queries and tips for auditing these commands in link:./query/[query].
+
+Notify *applicants* with *incomplete applications*:
+
+    manage develop djmanage sendreminder -v2 [--dry-run] --test "Liz Lemon <lizlemon@gmail.com>" --test "Ralph Garmand <ralphgarmand@gmail.com>" applicant
+
+    manage develop djmanage sendreminder -v2 --dry-run applicant
+
+Remind _all_ *recommenders* (whether reference submitted or not) -- (we *didn't* do this in 2020):
+
+    manage develop djmanage sendreminder -v2 [--dry-run] --test "Liz Lemon <lizlemon@gmail.com>" --test "Ralph Garmand <ralphgarmand@gmail.com>" --test "Lizzz Lemon <lizlemon+another@gmail.com>" reference
+
+Notify *recommenders* with *unsubmitted references*:
+
+    manage develop djmanage sendstatus --test-email lizlemon@gmail.com --test-email lizlemon+ref1@gmail.com --test-email ralphgarmand+ref2@gmail.com [--dry-run] --references
+
+    manage develop djmanage sendstatus --dry-run --references
+
+=== Execution
+
+What we actually did/do.
+
+Notify *applicants* with *incomplete applications*:
+
+    manage develop djmanage sendreminder [-v2] applicant
+
+Notify *recommenders* with *unsubmitted references*:
+
+    manage develop djmanage sendstatus --references
+
+
+== Post-deadline Status
+
+=== Testing
+
+Notify *recommenders* with *unsubmitted references* for *completed applications*:
+
+    manage develop djmanage sendstatus --references --references-late --references-complete [--dry-run] [--test-email ...]
+
+Notify *applicants* with *completed applications* that we've *received less than two references*:
+
+    manage develop djmanage sendstatus -v2 --unsubmitted [--dry-run] [--test-email ...]
+
+=== Execution
+
+Notify *recommenders* with *unsubmitted references* for *completed applications*:
+
+    manage develop djmanage sendstatus -v2 --references --references-late --references-complete
+
+Notify *applicants* with *completed applications* that we've *received less than two references*:
+
+    manage develop djmanage sendstatus -v2 --unsubmitted

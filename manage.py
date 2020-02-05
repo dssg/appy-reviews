@@ -509,6 +509,8 @@ class Develop(DbLocal):
     @localmethod('remainder', metavar='command arguments', nargs=REMAINDER)
     @localmethod('mcmd', metavar='command', help="django management command")
     @localmethod('-u', '--user', default='webapp', help='container user (default: webapp)')
+    @localmethod('--no-tty', dest='tty', action='store_false', default=True,
+                 help="do NOT supply a pseudo-tty")
     @_container_hint
     def djmanage(self, args):
         """manage the appy-reviews django project"""
@@ -517,7 +519,7 @@ class Develop(DbLocal):
             self.local.FG,
             self.local['docker'][
                 'exec',
-                '-it',
+                (('-it',) if args.tty else ()),
                 # users have no $HOME, so tell ipython, et al to look elsewhere:
                 '-e', 'XDG_CACHE_HOME=/tmp/xdg-cache/',
                 '--user', args.user,

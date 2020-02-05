@@ -69,3 +69,49 @@ Step 2 may be very slow! If you're concerned, you might ensure its operation and
 Note also that the above two commands may be invoked at once with the `--all` flag:
 
     manage etl -v2 --stage=application --all
+
+
+== Review stage
+
+Review-stage ETL differs from the former in that:
+
+1. Application survey data is ignored -- tables relating to either parts 1 or 2 of the application will not be updated.
+2. Reviewer registrations -- previously extracted from Wufoo, and loaded into a survey table, but otherwise ignored -- will be read, and invitation emails sent to reviewers to begin the application-reviewing process.
+
+=== Configuration
+
+ETL in this stage includes sending reviewer invitation emails, and which may include data we won't commit to the repository, such as the SMTP server credentials and a URL to join a Slack group.
+
+The `SLACK_URL` in particular may be specified via the shell, and will be passed through to the ETL process. This can be configured in the shell environment, or for example in Bash passed directly to the command process:
+
+    SLACK_URL="https://.../" manage etl ...
+
+However, the above form is _not_ recommended for server credentials, and so the shell environment should at least be extended for these:
+
+    export SMTP_USER="user-name"
+    export SMTP_PASSWORD="p@!ssw0rd"
+    export SLACK_URL="https://.../"
+
+=== Testing
+
+ETL command testing in the review stage _may_ focus more narrowly on the processing of reviewer registrations and sending of reviewer invitation emails.
+
+For example, the following command variant _filters_ the reviewer registrations under consideration to those given by the argument(s) `--invite-only`:
+
+    manage etl apps [--dry-run] --invite-only=username+test2020@gmail.com [--invite-only=...]
+
+(If `--dry-run` is also suppplied, no database changes will be persisted, and no emails will be sent.)
+
+If it's necessary to insert additional (test) reviewer records for consideration by the above command, this can be done via the Wufoo survey, (and loaded via the `wufoo` subcommand). Or, these can be inserted directly into the survey database table, (though this will result in mild inconsistencies between Wufoo and Appy data); for example:
+
+    INSERT INTO survey_reviewer_2020 ("EntryId", "Field1", "Field2", "Field3", "Field7", "Field8") VALUES ('98', 'First Test1', 'Last', 'username+test2020@gmail.com', 'sure', 'yep');
+
+=== Execution
+
+On the day following the application deadline, *first* run the above *application-stage ETL* -- one last time.
+
+Then begin running the review-stage command:
+
+    manage etl -v2 --stage=review --all
+
+Note that it is important to continue running ETL, for at least a little while following the application deadline. Not only may additional reviewers (be goaded to) register. As important, recommendation letters will continue to trickle in, for at least a little while.

@@ -15,6 +15,15 @@ ROOT_PATH = Path(__file__).parent.resolve()
 SRC_PATH = ROOT_PATH / 'src'
 
 
+class StrEnum(str, enum.Enum):
+
+    def __bool__(self):
+        return bool(self.value)
+
+    def __str__(self):
+        return str(self.value)
+
+
 class Appy(LocalRoot):
     """appy management"""
 
@@ -109,11 +118,6 @@ class DNS(Local):
     """manage site DNS"""
 
     SET_STYLE = 'alias'  # alias or cname
-
-    class StrEnum(str, enum.Enum):
-
-        def __str__(self):
-            return self.value
 
     class Domain(StrEnum):
 
@@ -237,13 +241,34 @@ class Build(Local):
     REPOSITORY_NAME = 'dsapp/appy-reviews/web'
     DEFAULT_NAMETAG = REPOSITORY_NAME + ':latest'
 
-    REGISTRY = '093198349272.dkr.ecr.us-west-2.amazonaws.com'
+    class EnvEnum(StrEnum):
 
-    @classmethod
-    def get_full_name(cls, name):
-        return '/'.join((cls.REGISTRY, name))
+        __env_default__ = ''
+
+        def __new__(cls, key):
+            value = os.getenv(key, cls.__env_default__)
+            obj = str.__new__(cls, value)
+            obj.envname = key
+            obj._value_ = value
+            return obj
+
+    class EnvDefault(EnvEnum):
+
+        registry = 'AP_CONTAINER_REGISTRY'
+
+        def add_help_text(self, help_text):
+            value_display = str(self) if self else 'none'
+            return f"{help_text} (default populated from {self.envname}: {value_display})"
 
     def __init__(self, parser):
+        parser.add_argument(
+            '--registry',
+            default=self.EnvDefault.registry,
+            help=self.EnvDefault.registry.add_help_text(
+                "Container registry's fully-qualified domain"
+            ),
+            metavar='DOMAIN',
+        )
         parser.add_argument(
             '-n', '--name',
             default=self.DEFAULT_NAMETAG,
@@ -276,6 +301,14 @@ class Build(Local):
             action='store_true',
             help="deploy the container once the image is pushed",
         )
+
+    def get_full_name(self, name):
+        if not self.args.registry:
+            self.args.__parser__.error(
+                f'specify container registry domain via flag --registry '
+                f'or env var {self.EnvDefault.registry.envname}'
+            )
+        return '/'.join((self.args.registry, name))
 
     def prepare(self, args, parser):
         if args.login and not args.push:

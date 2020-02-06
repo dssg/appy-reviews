@@ -238,9 +238,6 @@ class DNS(Local):
 class Build(Local):
     """build container image"""
 
-    REPOSITORY_NAME = 'dsapp/appy-reviews/web'
-    DEFAULT_NAMETAG = REPOSITORY_NAME + ':latest'
-
     class EnvEnum(StrEnum):
 
         __env_default__ = ''
@@ -255,6 +252,7 @@ class Build(Local):
     class EnvDefault(EnvEnum):
 
         registry = 'AP_CONTAINER_REGISTRY'
+        image = 'AP_IMAGE_PATH'
 
         def add_help_text(self, help_text):
             value_display = str(self) if self else 'none'
@@ -270,15 +268,22 @@ class Build(Local):
             metavar='DOMAIN',
         )
         parser.add_argument(
-            '-n', '--name',
-            default=self.DEFAULT_NAMETAG,
-            help=f'Image name/tag (default: {self.DEFAULT_NAMETAG})',
+            '--name',
+            default=self.EnvDefault.image,
+            help=self.EnvDefault.image.add_help_text("Image repository name (path)"),
         )
         parser.add_argument(
             '--label',
             action='append',
-            help='Additional name/tags to label image; the first of these, '
+            help='Tags to label image; the first of these, '
                  'if any, is treated as the "version"',
+        )
+        parser.add_argument(
+            '--not-latest',
+            action='store_false',
+            default=True,
+            dest='latest',
+            help='Do NOT tag the image "latest"',
         )
         parser.add_argument(
             '--target',
@@ -302,13 +307,28 @@ class Build(Local):
             help="deploy the container once the image is pushed",
         )
 
-    def get_full_name(self, name):
-        if not self.args.registry:
+    def get_full_tag(self, tag=None, registry=False):
+        if not self.args.name:
             self.args.__parser__.error(
-                f'specify container registry domain via flag --registry '
-                f'or env var {self.EnvDefault.registry.envname}'
+                f'specify image name/path via flag --name '
+                f'or env var {self.EnvDefault.image.envname}'
             )
-        return '/'.join((self.args.registry, name))
+
+        full_tag = self.args.name
+
+        if registry:
+            if not self.args.registry:
+                self.args.__parser__.error(
+                    f'specify container registry domain via flag --registry '
+                    f'or env var {self.EnvDefault.registry.envname}'
+                )
+
+            full_tag = '/'.join((self.args.registry, full_tag))
+
+        if tag:
+            full_tag = ':'.join((full_tag, tag))
+
+        return full_tag
 
     def prepare(self, args, parser):
         if args.login and not args.push:
@@ -317,16 +337,19 @@ class Build(Local):
         command = self.local['docker'][
             'build',
             '--build-arg', f'TARGET={args.target}',
-            '-t', args.name,
-            '-t', self.get_full_name(args.name),
         ]
+
+        if args.latest:
+            command = command[
+                '-t', self.get_full_tag('latest'),
+                '-t', self.get_full_tag('latest', registry=True),
+            ]
 
         if args.label:
             for label in args.label:
-                name = self.REPOSITORY_NAME + ':' + label
                 command = command[
-                    '-t', name,
-                    '-t', self.get_full_name(name),
+                    '-t', self.get_full_tag(label),
+                    '-t', self.get_full_tag(label, registry=True),
                 ]
 
         yield command[ROOT_PATH]
@@ -357,7 +380,7 @@ class Build(Local):
 
         yield self.local['docker'][
             'push',
-            self.get_full_name(self.REPOSITORY_NAME),
+            self.get_full_tag(registry=True),
         ]
 
     @localmethod

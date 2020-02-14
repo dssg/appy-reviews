@@ -702,7 +702,8 @@ class InterviewReview(AbstractRating,
 
     class OverallRecommendation(SafeStrEnum):
 
-        accept = "Accept"
+        accept = "Definitely accept"
+        probably_accept = "Probably accept"
         reject = "Reject"
         only_if = "Accept <em>only</em> if you need a certain type of fellow (explain below)"
 

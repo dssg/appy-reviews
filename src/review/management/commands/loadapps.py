@@ -254,6 +254,8 @@ class Command(BaseCommand):
                 continue
 
             with transaction.atomic():
+                # FIXME: interview emails require interviewer name (and add'l information),
+                # FIXME: which could be collected/updated here....
                 try:
                     email_address = EmailAddress.objects.get(email__iexact=reviewer_email)
                 except EmailAddress.MultipleObjectsReturned:

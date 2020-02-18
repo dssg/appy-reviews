@@ -212,7 +212,7 @@ class Command(base.UnbrandedEmailCommand):
             )
 
     def send_recipients(self, recipient_stream):
-        recipients = list(recipients_stream)
+        recipients = list(recipient_stream)
 
         send_count = self.send_mass_mail(
             (

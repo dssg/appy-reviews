@@ -104,6 +104,18 @@ class Command(BaseCommand):
         #
         # TODO: currently this doesn't help with that; but, unclear that that's
         # TODO: precisely something we'd want to automate.
+        #
+        # TODO: likely *could* do:
+        # TODO:
+        # TODO: * group by year: for all same-year applications between from_applicant(s)
+        # TODO:   and to_applicant, so long as these are more than one ...
+        # TODO:
+        # TODO: * run same logic/method as below with from_applications -> to_application
+        # TODO:
+        # TODO: * only copy over pages/parts that to_application is missing (or fix after
+        # TODO:   the fact); to_merge could even accept a lambda if appropriate
+        # TODO:
+        # TODO: then could proceed with existing to_applicant logic
 
         (updated, ignored) = self.update_related(account_type,
                                                  from_instances,

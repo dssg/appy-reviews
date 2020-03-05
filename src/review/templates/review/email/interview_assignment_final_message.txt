@@ -1,0 +1,14 @@
+Dear {{ applicant.first_name }} {{ applicant.last_name }},
+
+Congratulations! After our {{ previous_round_ordinal }} round of interviews, we are happy to tell you that you've progressed to the {{ round_ordinal }} (and most likely final) interview round for the {{ program_year }} Data Science for Social Good Fellowship. You should be proud of your work, application, and interview. 
+
+As before, we have recruited DSSG organizers and mentors from previous years to assist with interviews in this round. We will be conducting these interviews via Zoom/Skype/Hangouts (or another video conference tool) over the next 10 days.
+
+You have been matched with {{ interviewer.first_name }} {{ interviewer.last_name }}, CC'd for your interview. They will be contacting you to schedule an interview. Please allocate about 30 minutes for the interview and find a quiet place with good internet access and a computer. This interview will not typically involve looking at code and will focus more on your experience, interests, and fit for the program.
+
+Please keep in mind that your interviewer may not be able to answer all your questions about this year's fellowship (project details, start dates, etc.) since they may not be intimately involved with planning for this summer. Feel free to email us any questions they can't answer and we'll be happy to answer them, and be patient with us as we make decisions and get back to you after the interviews.
+
+Again, congratulations on moving on to the final interview phase. We look forward to speaking with you and learning more about your motivations.
+
+Regards,
+Data Science for Social Good Fellowship Team

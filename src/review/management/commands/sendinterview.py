@@ -1,5 +1,6 @@
 import argparse
 import collections
+import enum
 import itertools
 import re
 
@@ -25,7 +26,9 @@ INCLUDE = 0
 EXCLUDE = 1
 
 def split_every(iterable, n, remainder=INCLUDE):
-    """Slice an iterable into chunks of n elements
+    """Slice an iterable into batches/chunks of n elements
+
+    Each generated chunk is of type tuple.
 
     :type iterable: Iterable
     :type n: int
@@ -48,6 +51,11 @@ def split_every(iterable, n, remainder=INCLUDE):
 
 split_every.INCLUDE = INCLUDE
 split_every.EXCLUDE = EXCLUDE
+
+
+def igetitems(iterable, arg):
+    for item in iterable:
+        yield item[arg]
 
 
 EMAIL_PATTERN = re.compile(
@@ -110,6 +118,16 @@ class Recipient(RecipientMixin, RecipientBase):
 
 class Interviewer(RecipientMixin, InterviewerBase):
     pass
+
+
+class EmailTemplate(str, enum.Enum):
+
+    initial = 'review/email/interview_assignment_initial'
+    final = 'review/email/interview_assignment_final'
+
+    @classmethod
+    def for_round(cls, interview_round):
+        return cls.initial if interview_round <= 1 else cls.final
 
 
 class Command(base.UnbrandedEmailCommand):
@@ -211,41 +229,52 @@ class Command(base.UnbrandedEmailCommand):
                 None,
             )
 
-    def send_recipients(self, recipient_stream):
-        recipients = list(recipient_stream)
+    def send_recipients(self, recipient_stream, batch_size=30):
+        total_sent = total_recorded = 0
 
-        send_count = self.send_mass_mail(
-            (
-                'review/email/interview_assignment',
-                applicant.email,
-                {
-                    'applicant': applicant,
-                    'interviewer': reviewer,
-                    'program_year': settings.REVIEW_PROGRAM_YEAR,
-                    'round_ordinal': round_ordinal(interview_round),
-                },
-                (
-                    reviewer.email,
-                    'info@datascienceforsocialgood.org',
-                ),
-            )
-            for (applicant, reviewer, interview_round, _assignment) in recipients
-        )
+        # must batch these to avoid email sending API limits
+        for recipients in split_every(recipient_stream, batch_size):
+            try:
+                send_count = self.send_mass_mail(
+                    (
+                        EmailTemplate.for_round(interview_round),               # email template
+                        applicant.email,                                        # to: address
+                        {                                                       # template context
+                            'applicant': applicant,
+                            'interviewer': reviewer,
+                            'program_year': settings.REVIEW_PROGRAM_YEAR,
+                            'round_ordinal': round_ordinal(interview_round),
+                            'previous_round_ordinal': (
+                                round_ordinal(interview_round - 1) if interview_round > 1 else None
+                            ),
+                        },
+                        (                                                       # cc: addresses
+                            reviewer.email,
+                            'info@datascienceforsocialgood.org',
+                        ),
+                    )
+                    for (applicant, reviewer, interview_round) in igetitems(recipients, slice(3))
+                )
+            except Exception:
+                failed_emails = (applicant.email for applicant in igetitems(recipients, 0))
+                self.stderr.write('[FATAL] send to: ' + ' '.join(failed_emails))
+                raise
 
-        self.stdout.write(f'[INFO] sent {send_count}')
+            total_sent += send_count
+            self.stdout.write(f'[INFO] sent {send_count}')
 
-        pks_notified = [
-            assignment.pk
-            for (_applicant, _reviewer, _interview_round, assignment) in recipients
-            if assignment
-        ]
-        if pks_notified:
-            assignments_notified = InterviewAssignment.objects.filter(pk__in=pks_notified)
-            update_count = assignments_notified.update(notified=Now())
-        else:
-            update_count = 0
+            pks_notified = [assignment.pk for assignment in igetitems(recipients, 3) if assignment]
+            if pks_notified:
+                assignments_notified = InterviewAssignment.objects.filter(pk__in=pks_notified)
+                update_count = assignments_notified.update(notified=Now())
+            else:
+                update_count = 0
 
-        self.stdout.write(f'[INFO] recorded {update_count}')
+            total_recorded += update_count
+            self.stdout.write(f'[INFO] recorded {update_count}')
+
+        self.stdout.write(f'[INFO] totals: sent {total_sent} and recorded {total_recorded}')
+        self.stdout.write('[INFO] done')
 
     def report_recipients(self, recipient_stream):
         table = AsciiTable(

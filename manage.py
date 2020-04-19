@@ -1,6 +1,8 @@
 import contextlib
 import enum
 import functools
+import hashlib
+import json
 import os
 import sys
 from argparse import REMAINDER
@@ -234,6 +236,116 @@ class DNS(Local):
             ]
 
 
+class VerbosityMixin:
+
+    def __init__(self, parser):
+        super().__init__(parser)
+
+        parser.add_argument(
+            '-v', '--verbosity',
+            type=int,
+            default=1,
+        )
+
+
+class EtlMixin:
+
+    def __init__(self, parser):
+        super().__init__(parser)
+
+        parser.add_argument(
+            '--year',
+            type=int,
+            help=f"Program year",
+        )
+        parser.add_argument(
+            '--stage',
+            choices=('application', 'review'),
+            help="configuration preset depending on whether the application "
+                 "period is still open or applications are now under review "
+                 "(and which reads year from settings)",
+        )
+
+    def make_wufoo(self):
+        command = ['loadwufoo']
+
+        if self.args.verbosity is not None:
+            command.extend(
+                ('-v', self.args.verbosity)
+            )
+
+        if self.args.year is not None:
+            command.extend(
+                ('-f', f'^{self.args.year} ')
+            )
+
+        if self.args.stage is not None:
+            command.extend(
+                ('--stage', self.args.stage)
+            )
+
+        return command
+
+
+@Appy.register
+class Job(EtlMixin, VerbosityMixin, Local):
+    """manage background tasks"""
+
+    jobs = ('wufoo', 'apps')
+
+    def __init__(self, parser):
+        super().__init__(parser)
+
+        parser.add_argument(
+            'name',
+            choices=self.jobs,
+            help="etl job to perform",
+        )
+
+    def make_wufoo(self):
+        command = super().make_wufoo()
+        command.append('-')
+        return command
+
+    def make_command(self):
+        if self.args.name == 'wufoo':
+            return self.make_wufoo()
+        elif self.args.name == 'apps':
+            raise NotImplementedError
+            # return self.make_apps()
+        else:
+            raise NotImplementedError
+
+    @localmethod
+    def submit(self, args):
+        # print(self.make_command())
+
+        # FIXME: signature useful?
+        # etl_args = [
+        #     (key, getattr(args, key))
+        #     for key in ('name', 'stage', 'verbosity', 'year')
+        # ]
+        # signature = hashlib.md5(json.dumps(etl_args).encode()).hexdigest()
+        etl_args = (
+            args.name,
+            args.stage,
+            args.year,
+        )
+        signature = '-'.join(value for value in etl_args if value)
+
+        return self.local['aws'][
+            'batch',
+            'submit-job',
+            '--job-queue', 'appy-web-default',
+            '--job-definition', 'appy-web-default',
+            '--job-name', f'appy-etl-{signature}',
+            '--timeout', '2700',  # TODO: make an optional argument?
+            '--container-overrides', json.dumps({
+                'command': ['./manage.py'] + self.make_command(),
+            }),
+        ]
+
+
 @Appy.register
 class Build(Local):
     """build container image"""
@@ -426,7 +538,7 @@ class LocalContainer(Local):
         )['appyreviews_web']
 
 
-class DbLocal(LocalContainer):
+class DbLocal(VerbosityMixin, LocalContainer):
 
     EXAMPLE_DATABASE_URL = 'postgres://appy_reviews:PASSWORD@localhost:5433/appy_reviews'
 
@@ -455,11 +567,8 @@ class DbLocal(LocalContainer):
         )['./manage.py']
 
     def __init__(self, parser):
-        parser.add_argument(
-            '-v', '--verbosity',
-            type=int,
-            default=1,
-        )
+        super().__init__(parser)
+
         parser.add_argument(
             '--db', '--database-url',
             dest='database_url',
@@ -648,24 +757,12 @@ class Db(DbLocal):
 
 
 @Appy.register
-class Etl(DbLocal):
+class Etl(EtlMixin, DbLocal):
     """manage survey data"""
 
     def __init__(self, parser):
         super().__init__(parser)
 
-        parser.add_argument(
-            '--year',
-            type=int,
-            help=f"Program year",
-        )
-        parser.add_argument(
-            '--stage',
-            choices=('application', 'review'),
-            help="configuration preset depending on whether the application "
-                 "period is still open or applications are now under review "
-                 "(and which reads year from settings)",
-        )
         parser.add_argument(
             '--all',
             action='store_true',
@@ -693,14 +790,14 @@ class Etl(DbLocal):
                 '\tWUFOO_API_KEY=xx-xx-xx DATABASE_URL=... manage etl bootstrap'
             )
 
-        return self.manage(WUFOO_API_KEY=None)[
-            'loadwufoo',
-            '-v', args.verbosity,
-            (('-f', f'^{args.year} ') if args.year else ()),
-            (('--stage', args.stage) if args.stage else ()),
-            ('--no-database' if not args.write_to_db else ()),
-            ('output' if args.csv_cache else '-'),
-        ]
+        command = self.make_wufoo()
+
+        if not args.write_to_db:
+            command.append('--no-database')
+
+        command.append('output' if args.csv_cache else '-')
+
+        return self.manage(WUFOO_API_KEY=None)[command]
 
     @localmethod('subcommand',
                  choices=('execute', 'inspect',), default='execute', nargs='?',

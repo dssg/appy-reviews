@@ -115,3 +115,8 @@ Then begin running the review-stage command:
     manage etl -v2 --stage=review --all
 
 Note that it is important to continue running ETL, for at least a little while following the application deadline. Not only may additional reviewers (be goaded to) register. As important, recommendation letters will continue to trickle in, for at least a little while.
+
+
+== Automation
+
+TODO! (And just note that at a certain point you want to change stages -- probably just as much if it's automated as not, though also shouldn't be the end of the world if there's some hangover/overlap....)

@@ -1,0 +1,50 @@
+= Customization of the Applications-to-Review Query
+
+In 2020 there was a request to customize the ordering of applications-to-be-reviewed, in a way that depended on survey data not extracted into the application schema.
+
+In particular, the request was to deprioritize applications expressing interest in _only_ the DSSGx at University of Warwick.
+
+The below diff documents how such a change might be (temporarily) patched into the module which generates the relevant SQL.
+
+(Note: Obviously if such year-specific customizations were regularly necessary, then another method for customizing this query would be advised.)
+
+[source,diff]
+----
+diff --git a/src/review/query.py b/src/review/query.py
+index 0dee835..2568118 100644
+--- a/src/review/query.py
++++ b/src/review/query.py
+@@ -114,6 +114,15 @@ def apps_to_review(reviewer, *, application_id=None, limit=None,
+                 "negative_review"."overall_recommendation" = '{models.ApplicationReview.OverallRecommendation.reject.name}'
+             )
+ 
++            --- FIXME: 2020 only!!! ---
++            LEFT OUTER JOIN "survey_application_1_2020" AS "only_warwick" ON (
++                "application_page"."table_name" = 'survey_application_1_2020' AND
++                "application_page"."column_name" = 'EntryId' AND
++                "application_page"."entity_code" = "only_warwick"."EntryId" AND
++                "only_warwick"."Field1893" = 'I am *only* interested in the affiliated DSSGx Turing UK at at University of Warwick'
++            )
++            --- END FIXME ---
++
+             -- only consider applications ...
+             WHERE
+                 -- ... which we haven't culled:
+@@ -131,6 +140,10 @@ def apps_to_review(reviewer, *, application_id=None, limit=None,
+                 -- prioritize applications by their lack of reviews:
+                 COUNT(DISTINCT "review"."review_id") ASC,
+ 
++                --- FIXME: 2020 only!!! ---
++                COUNT(DISTINCT "only_warwick"."EntryId") ASC,
++                --- END FIXME ---
++
+                 -- ... then by the uncertainty of their reviews:
+                 COUNT(DISTINCT "unknown_review"."review_id") DESC,
+----
+
+[NOTE]
+====
+The above change is sufficient because only the _ordering_ -- or prioritization -- of applications was to be changed for reviewers.
+
+The above-referenced module features another method, as well, used by the software to query applications available for review: `unordered_reviewable_apps`. Any change to the _filtering_ of applications would likely need be applied to both.
+====

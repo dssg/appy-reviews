@@ -1,4 +1,5 @@
 = Email with Appy
+:toc:
 
 [NOTE]
 ====
@@ -71,3 +72,12 @@ Notify *recommenders* with *unsubmitted references* for *completed applications*
 Notify *applicants* with *completed applications* that we've *received less than two references*:
 
     manage develop djmanage sendstatus -v2 --unsubmitted
+
+
+== Interview Assignments
+
+Notify *interviewers* & *interviewees* of extant & unnnotified *interview assignments*:
+
+    manage develop djmanage sendinterview [--dry-run] [--test-email ...]
+
+(info@datascienceforsocialgood.org is also CC'd).

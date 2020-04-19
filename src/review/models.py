@@ -316,6 +316,7 @@ class ReviewerConcession(models.Model):
 class Applicant(models.Model):
 
     applicant_id = models.AutoField(primary_key=True)
+    # FIXME: CIEmailField (may require data migration to handle existing case overlaps)
     email = models.EmailField(
         'email address',
         unique=True,

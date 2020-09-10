@@ -127,14 +127,28 @@ Parameter group::
 
   `default.postgres10`
 
-Security groups::
-
-  * ddj compatible security group (`sg-5f596020`)
-  * rds-launch-wizard (`sg-05d804e82060e83d5`)
-
 Storage type::
 
   General Purpose (SSD)
+
+VPC::
+
+  `dsapp-vpc`
+
+Subnet group::
+
+  `dsapp-db-subnet-group`
+
+Note, in 2019 the following security groups were attached. However, in 2020, only the "default" VPC security group was attached, dsapp-private-sg, allowing access to the database only from instances in security group dsapp-sg-general:
+
+2020 security group::
+
+  `dsapp-private-sg`
+
+2019 security groups::
+
+  * ddj compatible security group (`sg-5f596020`)
+  * rds-launch-wizard (`sg-05d804e82060e83d5`)
 
 Then, terminate the RDS database instance `appy`, ensuring that a final snapshot is taken:
 

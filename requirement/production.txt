@@ -1,5 +1,5 @@
 Dickens==1.0.1
-Django==2.2.9
+Django==2.2.24
 django-allauth==0.38.0
 django-mathfilters==0.4.0
 django-tables2==2.0.4

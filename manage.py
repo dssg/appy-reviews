@@ -123,6 +123,7 @@ class DNS(Local):
 
         zone = 'dssg.io.'
         fqdn = f'review.{zone}'
+        fqdn_s = f's.{fqdn}'
 
     class CName(StrEnum):
 
@@ -156,6 +157,18 @@ class DNS(Local):
             '.[0].Id',
         ]
 
+    def __init__(self, parser):
+        parser.add_argument(
+            '-p', '--prefix',
+            default='production',
+            choices=('staging', 'production'),
+            help="domain prefix (default: production prefix)",
+        )
+
+    @property
+    def fqdn(self):
+        return self.Domain.fqdn_s if self.args.prefix == 'staging' else self.Domain.fqdn
+
     @localmethod
     def check(self):
         """look up the site's current DNS setting"""
@@ -168,7 +181,7 @@ class DNS(Local):
                     'route53',
                     'list-resource-record-sets',
                     '--hosted-zone-id', '{}',
-                    '--query', f"ResourceRecordSets[?Name == '{self.Domain.fqdn}']",
+                    '--query', f"ResourceRecordSets[?Name == '{self.fqdn}']",
                 ] | self.local['jq']['-r'][
                     '.[0].AliasTarget.DNSName'
                     if self.SET_STYLE == 'alias' else
@@ -230,7 +243,7 @@ class DNS(Local):
                        "TTL": 300,
                        "ResourceRecords": [{"Value": "%s"}]'''
                     )
-                ) % (self.Domain.fqdn, target_cname),
+                ) % (self.fqdn, target_cname),
             ]
 
 

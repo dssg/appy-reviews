@@ -316,7 +316,7 @@ class ReviewerConcession(models.Model):
 class Applicant(models.Model):
 
     applicant_id = models.AutoField(primary_key=True)
-    email = models.EmailField(
+    email = CIEmailField(
         'email address',
         unique=True,
         error_messages={

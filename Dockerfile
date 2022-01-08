@@ -1,9 +1,9 @@
 # appy-reviews container build file
 #
 
-ARG PYVERSION=3.7.2
+ARG PYVERSION=3.7.12
 
-FROM python:$PYVERSION-stretch
+FROM python:$PYVERSION-bullseye
 
 # build for production by default, but allow use of alternative Python
 # requirement files for alternative runtime targets (such as development)
@@ -12,7 +12,7 @@ ARG TARGET=production
 # redeclare PYVERSION argument for access in label (FIXME: does this work?)
 ARG PYVERSION
 
-LABEL version="0.3" \
+LABEL version="0.4" \
       pyversion="$PYVERSION" \
       target="$TARGET"
 

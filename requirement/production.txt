@@ -1,12 +1,16 @@
 Dickens==1.0.1
-Django==2.2.9
-django-allauth==0.38.0
-django-mathfilters==0.4.0
-django-tables2==2.0.4
-dj-database-url==0.4.2
-gunicorn==19.7.1
+Django==2.2.25
+django-allauth==0.47.0
+django-mathfilters==1.0.0
+django-tables2==2.4.1
+dj-database-url==0.5.0
+gunicorn==20.1.0
 git+https://github.com/wufoo/pyfoo.git@f84df2b6ba84ac2aa2a21f694938944be204464a
-ohio==0.1.2
+ohio==0.5.0
 plumbum==1.6.4
-psycopg2==2.7.3.2
-terminaltables==3.1.0
+
+# NOTE: cannot upgrade psycopg2 until upgrade Django to 3.2
+# psycopg2==2.9.3
+psycopg2==2.8.6
+
+terminaltables==3.1.10

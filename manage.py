@@ -391,10 +391,22 @@ class Build(Local):
                 assert executable == 'docker'
                 yield self.local[executable][arguments]
 
-        yield self.local['docker'][
-            'push',
-            self.get_full_tag(registry=True),
-        ]
+        if args.label:
+            for label in args.label:
+                yield self.local['docker'][
+                    'push',
+                    self.get_full_tag(label, registry=True),
+                ]
+            if args.latest:
+                yield self.local['docker'][
+                    'push',
+                    self.get_full_tag('latest', registry=True),
+                ]
+        else:
+            yield self.local['docker'][
+                'push',
+                self.get_full_tag(registry=True),
+            ]
 
     @localmethod
     def deploy(self, args):

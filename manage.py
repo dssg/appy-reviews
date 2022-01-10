@@ -369,10 +369,10 @@ class Build(Local):
         yield command[ROOT_PATH]
 
         if args.push:
-            yield from self['push'].prepare(args)
+            yield from self['push'].delegate()
 
         if args.deploy:
-            yield self['deploy'].prepare(args)
+            yield self['deploy'].delegate()
 
     @localmethod('-l', '--login', action='store_true', help="log in to AWS ECR")
     def push(self, args):

@@ -1,6 +1,7 @@
 import contextlib
 import enum
 import functools
+import json
 import os
 import sys
 from argparse import REMAINDER
@@ -409,7 +410,7 @@ class Build(Local):
             ]
 
     @localmethod
-    def deploy(self, args):
+    def deploy(self, args, parser):
         """deploy an image container"""
         command = self.local['eb']['deploy']
 
@@ -422,7 +423,25 @@ class Build(Local):
         command = command['--nohang']
 
         if args.label:
-            return command['-l', args.label[0]]
+            tag = args.label[0]
+            command = command['-l', tag]
+        elif args.latest:
+            tag = 'latest'
+        else:
+            parser.error("unable to determine image tag to deploy")
+
+        if args.execute_commands:
+            # modify eb metadata to pull appropriate image
+            metafile = ROOT_PATH / 'Dockerrun.aws.json'
+
+            with metafile.open() as fd:
+                metadata = json.load(fd)
+
+            metadata_image = metadata.setdefault('Image', {})
+            metadata_image['Name'] = self.get_full_tag(tag, registry=True)
+
+            with metafile.open('w') as fd:
+                json.dump(metadata, fd, indent=2)
 
         return command
 

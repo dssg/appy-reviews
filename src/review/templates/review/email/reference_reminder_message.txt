@@ -2,7 +2,7 @@ Dear {{target_first}} {{target_last}},
 
 This is an automated reminder. Please ignore this if you have already submitted the recommendation letter.
 
-{{applicant_first}} {{applicant_last}} has requested a letter of recommendation from you in support of an application for admission to the Data Science for Social Good Fellowship Program at Carnegie Mellon University. If you have not submitted your recommendation already, please use the link below to submit the recommendation by Jan 31, {{program_year}}.
+{{applicant_first}} {{applicant_last}} has requested a letter of recommendation from you in support of an application for admission to the Data Science for Social Good Fellowship Program at Carnegie Mellon University. If you have not submitted your recommendation already, please use the link below to submit the recommendation by Jan 28, {{program_year}}.
 
 {{reference_link}}
 

@@ -6,7 +6,7 @@ We have received one letter of recommendation for your application, from {{refer
 {% else %}
 We have not received any letters of recommendation for your application.
 {% endif %}
-Please ask your {% if reference %}remaining reference{% else %}references{% endif %} to submit their recommendation{% if not reference %}s{% endif %}.
+Please keep in mind that you need to send the recommendation form link to your recommenders. Please ask your {% if reference %}remaining reference{% else %}references{% endif %} to submit their recommendation{% if not reference %}s{% endif %}.
 
 Note: This could be an error if they did not use the specific link we sent to you. Please ask them to use the link below to submit their recommendation as soon as possible so we can refer to it in our review process.
 

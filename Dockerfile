@@ -52,7 +52,7 @@ RUN pip install				\
       # application python requirements:
       -r /etc/webapp/requirement/$TARGET.txt \
       # extas for command-reporting:
-      slack-report==0.0.2
+      slack-report==0.1.0
 
 CMD supervisord -n -c /etc/supervisor/supervisord.conf
 

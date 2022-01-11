@@ -5,6 +5,9 @@ Thanks for starting your application for the {{program_year}} Data Science for S
 Complete your application:
 {{application_link}}
 
+Link for your recommenders:
+{{reference_link}}
+
 Thank you,
 Data Science for Social Good
 Carnegie Mellon University

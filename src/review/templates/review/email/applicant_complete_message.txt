@@ -1,0 +1,10 @@
+Hi {{applicant_first}}, 
+
+Thank you for applying to the 2022 Data Science for Social Good Summer Fellowship at Carnegie Mellon University! This email confirms that you have completed both parts of the application and that we have received recommendations from both of your recommenders. 
+
+Applications close on January 28th, after which we will begin reviewing applicants. We will notify you about whether or not you will be moving forward in the application process in late February. 
+
+Thank you,
+Data Science for Social Good
+Carnegie Mellon University
+http://www.dssgfellowship.org

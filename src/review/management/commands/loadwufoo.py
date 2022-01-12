@@ -34,7 +34,7 @@ FORMS = (
     r'(?:(?:[- ]+part)? (\d))?$',
 
     # reviewer form
-    r'^(\d+) dssg application (reviewer) (?:registration|signup)$',
+    r'^(\d+) dssg application (reviewer)(?: and scoper)? (?:registration|signup)$',
 )
 
 ENTRY_PAGE_SIZE = 100  # (Also the API default)

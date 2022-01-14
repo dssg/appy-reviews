@@ -1,7 +1,6 @@
 import argparse
 import collections
 import enum
-import itertools
 import re
 
 from django.conf import settings
@@ -11,7 +10,7 @@ from terminaltables import AsciiTable
 
 from review.models import InterviewAssignment
 
-from . import base
+from base import UnbrandedEmailCommand, split_every
 
 
 def round_ordinal(n):
@@ -20,37 +19,6 @@ def round_ordinal(n):
     if n == 2:
         return 'second'
     raise ValueError(n)
-
-
-INCLUDE = 0
-EXCLUDE = 1
-
-def split_every(iterable, n, remainder=INCLUDE):
-    """Slice an iterable into batches/chunks of n elements
-
-    Each generated chunk is of type tuple.
-
-    :type iterable: Iterable
-    :type n: int
-    :type remainder: int
-    :rtype: Iterator
-
-    """
-    iterator = iter(iterable)
-    stream = (tuple(itertools.islice(iterator, n))
-              for _none in itertools.repeat(None))
-
-    if remainder == INCLUDE:
-        predicate = bool
-    elif remainder == EXCLUDE:
-        predicate = lambda item: len(item) == n
-    else:
-        raise TypeError(f"unsupported: {remainder}")
-
-    return itertools.takewhile(predicate, stream)
-
-split_every.INCLUDE = INCLUDE
-split_every.EXCLUDE = EXCLUDE
 
 
 def igetitems(iterable, arg):
@@ -130,7 +98,7 @@ class EmailTemplate(str, enum.Enum):
         return cls.initial if interview_round <= 1 else cls.final
 
 
-class Command(base.UnbrandedEmailCommand):
+class Command(UnbrandedEmailCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -220,7 +188,7 @@ class Command(base.UnbrandedEmailCommand):
 
     def get_test_recipients(self, test_recipients, interview_round=None):
         interview_round = interview_round or 1
-        recipient_stream = split_every(test_recipients, 2, remainder=EXCLUDE)
+        recipient_stream = split_every(test_recipients, 2, remainder=split_every.EXCLUDE)
         for (applicant, reviewer) in recipient_stream:
             yield (
                 applicant,

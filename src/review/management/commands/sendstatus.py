@@ -1,6 +1,5 @@
 import itertools
 import urllib
-import sys
 from collections import namedtuple
 
 from django.conf import settings
@@ -9,7 +8,7 @@ from django.db import connection
 from django.utils.safestring import mark_safe
 
 from . import APPLICANT_SURVEY_FIELDS, REFERENCE_SURVEY_FIELDS, REFERENCE_FORM_URL
-from .base import UnbrandedEmailCommand
+from .base import UnbrandedEmailCommand, exhaust_iterable
 
 
 class Command(UnbrandedEmailCommand):
@@ -97,41 +96,10 @@ class Command(UnbrandedEmailCommand):
                  "(prefix: review/email/reference_status)",
         )
 
-    def send_mail(self, template, address, context, on_behalf=None):
-        # It's *possible* to send duplicate emails (most commonly due to bad,
-        # but unavoidable, user data). Try to catch these.
-        email_signature = (template, address.lower())  # assumes context unvariable
-        if on_behalf:
-            email_signature += (on_behalf.lower(),)
-
-        if email_signature in self._references_emailed:
-            print("[WARN] duplicate email (will not send)",
-                  "to:", address, "for:", on_behalf or '<none>',
-                  file=sys.stderr)
-            return
-
-        self._references_emailed.add(email_signature)
-
-        action_text = 'emailed' if self._send_mail else 'would-email'
-        log_args = (action_text, address)
-        if on_behalf:
-            log_args += ('on-behalf-of', on_behalf)
-
-        if self._send_mail:
-            super().send_mail(template, address, context)
-            if self._verbosity > 1:
-                print(*log_args)
-        else:
-            # print(on_behalf, address)  # TODO: perhaps add --debug-log option to output like this
-            print(*log_args)
-
     def handle(self, opt_incomplete, opt_unsubmitted, opt_complete, opt_all_applicants,
                opt_references, opt_references_complete, opt_references_template,
                send_mail, test_emails, debug_sql, verbosity, **_opts):
-        self._send_mail = send_mail
         self._verbosity = verbosity
-
-        self._references_emailed = set()
 
         if debug_sql:
             print(sql_statement())
@@ -150,9 +118,56 @@ class Command(UnbrandedEmailCommand):
         if not opt_incomplete and not opt_unsubmitted and not opt_complete and not opt_references:
             raise CommandError("nothing to do")
 
-        results = stream_test(test_emails) if test_emails else stream_applications()
-        for result in results:
-            if not result.app_completed:
+        application_statuses = stream_test(test_emails) if test_emails else stream_applications()
+
+        to_mail = self.generate_mail(application_statuses,
+                                     opt_incomplete, opt_unsubmitted, opt_complete,
+                                     opt_references, opt_references_complete,
+                                     opt_references_template)
+
+        messages = self.process_mail(to_mail, send_mail=send_mail)
+
+        if send_mail:
+            send_count = self.send_batched_email(messages)
+            self.stdout.write(f'[INFO] sent {send_count}')
+        else:
+            exhaust_iterable(messages)
+
+    def process_mail(self, messages, send_mail):
+        # It's *possible* to send duplicate emails (most commonly due to bad,
+        # but unavoidable, user data). Try to catch these.
+        references_emailed = set()
+
+        for (template, address, context, on_behalf) in messages:
+            email_signature = (template, address.lower())  # assumes context unvariable
+            if on_behalf:
+                email_signature += (on_behalf.lower(),)
+
+            if email_signature in references_emailed:
+                self.stderr.write(
+                    f"[WARN] duplicate email (will not send) to: {address} for: " +
+                    (on_behalf or '<none>')
+                )
+                continue
+
+            references_emailed.add(email_signature)
+
+            action_text = 'emailed' if send_mail else 'would-email'
+            log_args = (action_text, address)
+            if on_behalf:
+                log_args += ('on-behalf-of', on_behalf)
+
+            if not send_mail or self._verbosity > 1:
+                self.stdout.write(' '.join(log_args))
+
+            yield (template, address, context)
+
+    def generate_mail(self, application_statuses,
+                      opt_incomplete, opt_unsubmitted, opt_complete,
+                      opt_references, opt_references_complete,
+                      opt_references_template):
+        for status in application_statuses:
+            if not status.app_completed:
                 if opt_incomplete:
                     raise NotImplementedError
 
@@ -161,24 +176,24 @@ class Command(UnbrandedEmailCommand):
                     continue
 
             reference_link = REFERENCE_FORM_URL.format(
-                app_email=urllib.parse.quote_plus(result.app_email),
+                app_email=urllib.parse.quote_plus(status.app_email),
             )
-            references_submitted = (result.ref0_submitted, result.ref1_submitted)
-            if not all(references_submitted) and opt_references and (result.app_completed or
+            references_submitted = (status.ref0_submitted, status.ref1_submitted)
+            if not all(references_submitted) and opt_references and (status.app_completed or
                                                                      not opt_references_complete):
-                app_references = (result[3:6], result[6:9])
+                app_references = (status[3:6], status[6:9])
 
                 for ((ref_first,
                       ref_last,
                       ref_email),
                      reference_submitted) in zip(app_references, references_submitted):
                     if not reference_submitted:
-                        self.send_mail(
+                        yield (
                             opt_references_template,
                             ref_email,
                             {
-                                'applicant_first': result.app_first,
-                                'applicant_last': result.app_last,
+                                'applicant_first': status.app_first,
+                                'applicant_last': status.app_last,
                                 'ref_first': ref_first,
                                 'ref_last': ref_last,
                                 'target_first': ref_first,
@@ -186,21 +201,22 @@ class Command(UnbrandedEmailCommand):
                                 'reference_link': mark_safe(reference_link),
                                 'program_year': settings.REVIEW_PROGRAM_YEAR,
                             },
-                            on_behalf=result.app_email,
+                            status.app_email,
                         )
 
-            if len(result.references) < 2:
-                if opt_unsubmitted and result.app_completed:
-                    self.send_mail(
+            if len(status.references) < 2:
+                if opt_unsubmitted and status.app_completed:
+                    yield (
                         'review/email/applicant_references',
-                        result.app_email,
+                        status.app_email,
                         {
-                            'applicant_first': result.app_first,
-                            'applicant_last': result.app_last,
-                            'reference': result.references[0] if result.references else None,
+                            'applicant_first': status.app_first,
+                            'applicant_last': status.app_last,
+                            'reference': status.references[0] if status.references else None,
                             'reference_link': mark_safe(reference_link),
                             'program_year': settings.REVIEW_PROGRAM_YEAR,
                         },
+                        None,
                     )
 
             else:

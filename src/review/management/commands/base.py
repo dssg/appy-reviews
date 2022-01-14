@@ -1,9 +1,46 @@
+import collections
 import contextlib
+import itertools
 
 from allauth.account.adapter import get_adapter
 from django.conf import settings
 from django.core import mail
 from django.core.management.base import BaseCommand
+
+
+_INCLUDE = 0
+_EXCLUDE = 1
+
+def split_every(iterable, n, remainder=_INCLUDE):
+    """Slice an iterable into batches/chunks of n elements
+
+    Each generated chunk is of type tuple.
+
+    :type iterable: Iterable
+    :type n: int
+    :type remainder: int
+    :rtype: Iterator
+
+    """
+    iterator = iter(iterable)
+    stream = (tuple(itertools.islice(iterator, n))
+              for _none in itertools.repeat(None))
+
+    if remainder == _INCLUDE:
+        predicate = bool
+    elif remainder == _EXCLUDE:
+        predicate = lambda item: len(item) == n
+    else:
+        raise TypeError(f"unsupported: {remainder}")
+
+    return itertools.takewhile(predicate, stream)
+
+split_every.INCLUDE = _INCLUDE
+split_every.EXCLUDE = _EXCLUDE
+
+
+def exhaust_iterable(iterable):
+    collections.deque(iterable, maxlen=0)
 
 
 @contextlib.contextmanager
@@ -50,3 +87,11 @@ class UnbrandedEmailCommand(BaseCommand):
         with set_email_prefix(''):
             with mail.get_connection() as connection:
                 return connection.send_messages(self._mass_mail_messages(data))
+
+    def send_batched_email(self, data, size=30):
+        send_count = 0
+
+        for items in split_every(data, size):
+            send_count += self.send_mass_mail(items)
+
+        return send_count

@@ -1,7 +1,6 @@
 import argparse
 import datetime
 import re
-import sys
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -10,7 +9,7 @@ from django.db import connection
 from django.utils.safestring import mark_safe
 
 from . import APPLICANT_SURVEY_FIELDS, REFERENCE_FORM_URL
-from .base import UnbrandedEmailCommand
+from .base import UnbrandedEmailCommand, exhaust_iterable
 
 
 APPLICATION_FORM2_URL = ('https://datascience.wufoo.com/forms/'
@@ -89,23 +88,31 @@ class Command(UnbrandedEmailCommand):
     def handle(self, target, template, test, dry_run, verbosity, since=None, **_options):
         data_handler = getattr(self, f'stream_{target}s')
 
-        for ((app_first, app_last, app_email), reminder_targets) in data_handler(since=since,
-                                                                                 test=test):
+        to_mail = data_handler(since=since, test=test)
+
+        messages = self.process_mail(to_mail, target, template, dry_run, verbosity)
+
+        if dry_run:
+            exhaust_iterable(messages)
+        else:
+            send_count = self.send_batched_email(messages)
+            self.stderr.write(f'I: sent {send_count}')
+
+    def process_mail(self, to_mail, target, template, dry_run, verbosity):
+        for ((app_first, app_last, app_email), reminder_targets) in to_mail:
             if not app_first or not app_last or not app_email:
-                print("WARNING: skipping malformed applicant",
-                      repr(app_first), repr(app_last), repr(app_email), file=sys.stderr)
+                self.stderr.write("W: skipping malformed applicant "
+                                  f"{app_first!r} {app_last!r} {app_email!r}")
                 continue
 
             if verbosity >= 2:
                 action = 'WOULD mail (dry run)' if dry_run else 'emailing'
-                print(
-                    "on behalf of:" if target == 'reference' else f'{action}:',
-                    app_first,
-                    app_last,
-                    f"({app_email})",
+                self.stdout.write(
+                    ("on behalf of: " if target == 'reference' else f'{action}: ') +
+                    f"{app_first} {app_last} ({app_email})"
                 )
                 if target == 'reference':
-                    print(f"    {action}:", ' and '.join(ref[2] for ref in reminder_targets))
+                    self.stdout.write(f"    {action}: " + ' and '.join(ref[2] for ref in reminder_targets))
 
             application_link = mark_safe(APPLICATION_FORM2_URL.format(app_email=app_email))
             reference_link = mark_safe(REFERENCE_FORM_URL.format(app_email=app_email))
@@ -113,14 +120,11 @@ class Command(UnbrandedEmailCommand):
             for (target_first, target_last, target_email) in reminder_targets:
                 if not target_last or not target_email:
                     if target_first or target_last or target_email:
-                        print("WARNING: skipping malformed reminder target",
-                              repr(app_first), repr(app_last), repr(app_email), file=sys.stderr)
+                        self.stderr.write("W: skipping malformed reminder target "
+                                          f"{app_first!r} {app_last!r} {app_email!r}")
                     continue
 
-                if dry_run:
-                    continue
-
-                self.send_mail(template, target_email, {
+                yield (template, target_email, {
                     'applicant_first': app_first,
                     'applicant_last': app_last,
                     'target_first': target_first,
@@ -130,8 +134,7 @@ class Command(UnbrandedEmailCommand):
                     'program_year': settings.REVIEW_PROGRAM_YEAR,
                 })
 
-    @staticmethod
-    def get_test_recipients(test_lines, name_prefix):
+    def get_test_recipients(self, test_lines, name_prefix):
         for (recipient_index, recipient_line) in enumerate(test_lines):
             recipient_match = EMAIL_RECIPIENT_PATTERN.search(recipient_line)
             if recipient_match:
@@ -144,7 +147,7 @@ class Command(UnbrandedEmailCommand):
             try:
                 validate_email(applicant_email)
             except ValidationError:
-                print("[fatal] invalid test address:", applicant_email, file=sys.stderr)
+                self.stderr.write(f"F: invalid test address: {applicant_email}")
                 continue
 
             yield (
@@ -153,13 +156,12 @@ class Command(UnbrandedEmailCommand):
                 applicant_email,
             )
 
-    @classmethod
-    def stream_applicants(cls, since=None, test=False):
+    def stream_applicants(self, since=None, test=False):
         if since is not None:
             raise NotImplementedError
 
         if test:
-            for applicant_info in cls.get_test_recipients(test, 'Applicant'):
+            for applicant_info in self.get_test_recipients(test, 'Applicant'):
                 # (applicant info, target infos)
                 yield (applicant_info, [applicant_info])
 
@@ -187,17 +189,16 @@ class Command(UnbrandedEmailCommand):
                 # (applicant info, [targets: the applicant])
                 yield (row, [row])
 
-    @classmethod
-    def stream_references(cls, since=None, test=False):
+    def stream_references(self, since=None, test=False):
         if test:
             if since is not None:
                 raise NotImplementedError
 
-            for (applicant_index, applicant_info) in enumerate(cls.get_test_recipients(test, 'Applicant')):
+            for (applicant_index, applicant_info) in enumerate(self.get_test_recipients(test, 'Applicant')):
                 applicant_references = [
                     reference_info
                     for (reference_index, reference_info)
-                    in enumerate(cls.get_test_recipients(test, 'Reference'))
+                    in enumerate(self.get_test_recipients(test, 'Reference'))
                     if reference_index != applicant_index
                 ]
 

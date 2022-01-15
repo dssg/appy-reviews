@@ -779,3 +779,27 @@ class InterviewAssignment(models.Model):
         unique_together = (
             ('application', 'reviewer', 'interview_round'),
         )
+
+
+#
+# Messaging
+#
+
+class EmailMessage(models.Model):
+
+    email_message_id = models.AutoField(primary_key=True)
+    sent = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        abstract = True
+        ordering = ('-sent',)
+
+
+class ApplicationCompleteMessage(EmailMessage):
+
+    application = models.OneToOneField('review.Application',
+                                       on_delete=models.CASCADE,
+                                       related_name='application_complete_message')
+
+    class Meta(EmailMessage.Meta):
+        db_table = 'email_message_application_complete'

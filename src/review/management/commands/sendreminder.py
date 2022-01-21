@@ -183,7 +183,14 @@ class Command(UnbrandedEmailCommand):
                 FROM survey_application_1_{settings.REVIEW_PROGRAM_YEAR} AS survey_1
                 LEFT OUTER JOIN survey_application_2_{settings.REVIEW_PROGRAM_YEAR} AS survey_2
                 USING ("{join_field}")
-                WHERE survey_2."{join_field}" IS NULL
+                LEFT OUTER JOIN application_page page ON (
+                    page.table_name = 'survey_application_1_{settings.REVIEW_PROGRAM_YEAR}' AND
+                    page.column_name = 'EntryId' AND
+                    page.entity_code = survey_1."EntryId"
+                )
+                LEFT OUTER JOIN application USING (application_id)
+                WHERE survey_2."{join_field}" IS NULL AND
+                      application.withdrawn IS NULL
             """)
             for row in cursor:
                 # (applicant info, [targets: the applicant])
@@ -215,10 +222,17 @@ class Command(UnbrandedEmailCommand):
         statement = f"""\
             SELECT {select_fields}
             FROM survey_application_1_{settings.REVIEW_PROGRAM_YEAR} AS survey_1
+            LEFT OUTER JOIN application_page page ON (
+                page.table_name = 'survey_application_1_{settings.REVIEW_PROGRAM_YEAR}' AND
+                page.column_name = 'EntryId' AND
+                page.entity_code = survey_1."EntryId"
+            )
+            LEFT OUTER JOIN application USING (application_id)
+            WHERE application.withdrawn IS NULL
         """
         if since is not None:
             statement += f"""\
-                WHERE CAST(survey_1."DateCreated" as timestamp) > %s
+                AND CAST(survey_1."DateCreated" as timestamp) > %s
             """
 
         with connection.cursor() as cursor:

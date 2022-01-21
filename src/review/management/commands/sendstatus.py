@@ -300,7 +300,9 @@ def sql_statement():
                     page.column_name = 'EntryId' AND
                     page.entity_code = survey_1."EntryId"
                 )
+                LEFT OUTER JOIN application USING (application_id)
                 LEFT OUTER JOIN email_message_application_complete email_complete USING (application_id)
+                WHERE withdrawn IS NULL
             ),
             application_reference AS (
                 SELECT DISTINCT ON (LOWER("{app_email}"), LOWER("{ref_email}"))

@@ -557,6 +557,7 @@ class Develop(DbLocal):
             '--name', args.name,
             DATABASE_URL=self.database_url,
             APPY_DEBUG=1,
+            REVIEW_WHITELIST=None,
             SMTP_USER=None,
             SMTP_PASSWORD=None,
         )

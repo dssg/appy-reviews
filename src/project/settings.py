@@ -230,11 +230,7 @@ ACCOUNT_USERNAME_REQUIRED = False
 REVIEW_PROGRAM_YEAR = 2022
 REVIEW_SURVEY_LENGTH = 2
 REVIEW_REVIEWER_APPROVED = True
-REVIEW_WHITELIST = {
-    'jslondon@uchicago.edu',
-    'jesselondon@gmail.com',
-    'jester@dinosaursuperhero.com',
-}
+REVIEW_WHITELIST = set(filter(None, os.getenv('REVIEW_WHITELIST', '').split(' ')))
 REVIEW_APPLICATION_FIELDS = {
     # <"page" table>: (
     #       <pretty table name>, (

@@ -9,7 +9,7 @@ from django.db import connection
 from django.utils.safestring import mark_safe
 
 from . import APPLICANT_SURVEY_FIELDS, REFERENCE_FORM_URL
-from .base import UnbrandedEmailCommand, exhaust_iterable
+from .base import ApplicationEmailCommand, exhaust_iterable
 
 
 APPLICATION_FORM2_URL = ('https://datascience.wufoo.com/forms/'
@@ -30,7 +30,7 @@ def valid_datetime(value):
     raise argparse.ArgumentTypeError(f"Invalid date: '{value}'.")
 
 
-class Command(UnbrandedEmailCommand):
+class Command(ApplicationEmailCommand):
 
     help = "Send reminder emails to applicants or to applicants' references"
 
@@ -95,7 +95,7 @@ class Command(UnbrandedEmailCommand):
         if dry_run:
             exhaust_iterable(messages)
         else:
-            send_count = self.send_batched_email(messages)
+            send_count = self.send_batched_mail(messages)
             self.stderr.write(f'I: sent {send_count}')
 
     def process_mail(self, to_mail, target, template, dry_run, verbosity):

@@ -10,7 +10,7 @@ from terminaltables import AsciiTable
 
 from review.models import InterviewAssignment
 
-from base import UnbrandedEmailCommand, split_every
+from base import ApplicationEmailCommand, split_every
 
 
 def round_ordinal(n):
@@ -98,7 +98,7 @@ class EmailTemplate(str, enum.Enum):
         return cls.initial if interview_round <= 1 else cls.final
 
 
-class Command(UnbrandedEmailCommand):
+class Command(ApplicationEmailCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(

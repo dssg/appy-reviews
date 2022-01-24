@@ -558,6 +558,8 @@ class Develop(DbLocal):
             DATABASE_URL=self.database_url,
             APPY_DEBUG=1,
             REVIEW_WHITELIST=None,
+            SLACK_CHANNEL_URL=None,
+            SLACK_JOIN_URL=None,
             SMTP_USER=None,
             SMTP_PASSWORD=None,
         )
@@ -763,7 +765,8 @@ class Etl(DbLocal):
     def apps(self, args):
         """map wufoo data into appy"""
         return self.manage(
-            SLACK_URL=None,
+            SLACK_CHANNEL_URL=None,
+            SLACK_JOIN_URL=None,
             SMTP_USER=None,
             SMTP_PASSWORD=None,
         )[

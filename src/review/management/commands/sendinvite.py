@@ -1,5 +1,3 @@
-import os
-
 from allauth.account.adapter import get_adapter
 from allauth.account.models import EmailAddress, EmailConfirmationHMAC
 from django.conf import settings
@@ -8,9 +6,6 @@ from django.db import IntegrityError
 from django.urls import reverse
 
 from review.models import Reviewer
-
-
-SLACK_URL = os.getenv('SLACK_URL', None)
 
 
 class Command(LabelCommand):
@@ -96,6 +91,7 @@ class Command(LabelCommand):
             'activate_url': activate_url,
             'domain': settings.CANONICAL_HOST,
             'program_year': settings.REVIEW_PROGRAM_YEAR,
-            'slack_url': SLACK_URL,
+            'slack_join_url': settings.REVIEW_SLACK_JOIN_URL,
+            'slack_channel_url': settings.REVIEW_SLACK_CHANNEL_URL,
             'verified': email_address.verified,
         })

@@ -6,6 +6,8 @@ You're receiving this e-mail because you signed up with this e-mail address {{ e
 
 After confirming your e-mail, you will be signed in to Appy, to which you can always return by visiting {{ domain }}.{% endif %}
 
+To coordinate, please join the Slack channel [#application-reviewing](https://dssgalumni.slack.com/messages/application-reviewing) on the DSSG Alumni workspace. If you're not on the DSSG Alumni workspace, you can join via this link: 
+
 We got around 750 applications this year and are looking to get at least 3 reviews for each application. Around 80 of you volunteered to help us, which means ~30 application reviews from each reviewer. We're estimating the total time commitment to be 5-6 hours per person. Of course, we'd love it if you could do as many more than 30 as you can.
 
 * Appy *
@@ -14,11 +16,11 @@ This year we will be using Appy, the same home-built application review system a
 
 * Timeline *
 
-We would really appreciate it if you could finish this first round of application reviews by February 11th, so you can celebrate National Make A Friend Day (or the Satisfied Staying Single Day) without any guilt. We will be moving people to the interview round on a rolling basis; so, the sooner you submit your reviews, the sooner we are able schedule interviews. Our goal is to start interviews by February 14th, finish the first round of interviews by Feb 28th, the final round interviews by March 10th, and make decisions by March 15th.
+We would really appreciate it if you could finish this first round of application reviews by February 11th, so you can celebrate National Make A Friend Day (or the Satisfied Staying Single Day) without any guilt. We will be moving people to the interview round on a rolling basis; so, the sooner you submit your reviews, the sooner we are able schedule interviews. Our goal is to start interviews by February 14th, finish the first round of interviews by Feb 25th, the final round interviews by March 11th, and make decisions by March 15th.
 
 * Reviewing Tips *
 
-• As you all know, we look for a balance of skills. You don't have to be the best programmer or machine learning person but you also can't know any coding or data analysis. We do use Python so someone coming in with no Python skills would struggle. By getting reliable ratings across skills, we can make sure we get the right mix across the fellows.
+• As you all know, we look for a balance of skills. You don't have to be the best programmer or machine learning person but you also must have experience with coding or data analysis. We do use Python so someone coming in with no Python skills would struggle. By getting reliable ratings across skills, we can make sure we get the right mix across the fellows.
 
 • If there is enough information in the application to determine the level of a skill, please try to give a judgement. Only use '?' ("cannot determine") if there isn't enough information to assses that skill.
 

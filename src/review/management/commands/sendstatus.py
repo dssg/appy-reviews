@@ -10,10 +10,10 @@ from django.utils.safestring import mark_safe
 from review import models
 
 from . import APPLICANT_SURVEY_FIELDS, REFERENCE_SURVEY_FIELDS, REFERENCE_FORM_URL
-from .base import UnbrandedEmailCommand, exhaust_iterable
+from .base import ApplicationEmailCommand, exhaust_iterable
 
 
-class Command(UnbrandedEmailCommand):
+class Command(ApplicationEmailCommand):
 
     help = ("Send final status emails to applicants and "
             "reminders to unsubmitted references")
@@ -131,7 +131,7 @@ class Command(UnbrandedEmailCommand):
         messages = self.process_mail(to_mail, send_mail=send_mail)
 
         if send_mail:
-            send_count = self.send_batched_email(messages)
+            send_count = self.send_batched_mail(messages)
             self.stderr.write(f'I: sent {send_count}')
 
             for (model, objs) in self._create_cache.items():

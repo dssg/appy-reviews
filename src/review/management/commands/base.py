@@ -1,11 +1,11 @@
 import collections
-import contextlib
 import itertools
 
-from allauth.account.adapter import get_adapter
 from django.conf import settings
 from django.core import mail
 from django.core.management.base import BaseCommand
+
+from review.adapter import ApplicationAdapter
 
 
 _INCLUDE = 0
@@ -43,55 +43,63 @@ def exhaust_iterable(iterable):
     collections.deque(iterable, maxlen=0)
 
 
-@contextlib.contextmanager
-def set_email_prefix(prefix):
-    assert not hasattr(settings, 'ACCOUNT_EMAIL_SUBJECT_PREFIX')
+class ApplicationEmailCommand(BaseCommand):
 
-    try:
-        # NOTE: This could be done, perhaps better, a number of ways,
-        # such as configuring a special adapter, or not using the adapter at all.
-        # (The adapter in theory does some nice things, but really not required for this.)
-        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX = prefix
-        yield prefix
-    finally:
-        try:
-            delattr(settings, 'ACCOUNT_EMAIL_SUBJECT_PREFIX')
-        except AttributeError:
-            pass
-
-
-class UnbrandedEmailCommand(BaseCommand):
+    default_reply_to_email = getattr(settings, 'APPLICATION_REPLY_TO_EMAIL', ())
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.adapter = get_adapter(None)
+        self.adapter = ApplicationAdapter()
 
-    def send_mail(self, template, address, context):
-        with set_email_prefix(''):
-            self.adapter.send_mail(template, address, context)
+    @classmethod
+    def make_message_args(cls, template_prefix, email, context, cc=None, reply_to=None, headers=None):
+        if headers is None:
+            headers = {}
 
-    def _mass_mail_messages(self, data):
-        for item in data:
-            try:
-                (template_prefix, email, context, cc) = item
-            except ValueError:
-                (template_prefix, email, context) = item
-                cc = ()
+        if reply_to is None:
+            reply_to = cls.default_reply_to_email
 
-            msg = self.adapter.render_mail(template_prefix, email, context)
-            msg.cc.extend(cc)
+        for (name, value) in (('Cc', cc), ('Reply-To', reply_to)):
+            if value:
+                headers[name] = value if isinstance(value, str) else ', '.join(value)
 
-            yield msg
+        return (template_prefix, email, context, headers)
 
-    def send_mass_mail(self, data):
-        with set_email_prefix(''):
-            with mail.get_connection() as connection:
-                return connection.send_messages(self._mass_mail_messages(data))
+    def send_mail(self, *args, **kwargs):
+        # (see below TODO)
+        # message_args = self.make_message_args(*args, **kwargs)
+        # msg = self.adapter.render_mail(*message_args)
+        (*message_args, headers) = self.make_message_args(*args, **kwargs)
+        msg = self.adapter.render_mail(*message_args)
+        msg.extra_headers.update(headers)
+        msg.send()
 
-    def send_batched_email(self, data, size=30):
+    def generate_messages(self, items):
+        for item in items:
+            # TODO: allauth *really* dragging their feet on exposing EmailMessage interface...
+            #
+            # headers, at least, added; but, only yet in master.
+            #
+            # once merged, this should work fine:
+            #
+            #     message_args = self.make_message_args(*item)
+            #     yield self.adapter.render_mail(*message_args)
+            #
+            # until then, we'll add in headers after the fact:
+            #
+            (*message_args, headers) = self.make_message_args(*item)
+            message = self.adapter.render_mail(*message_args)
+            message.extra_headers.update(headers)
+            yield message
+
+    def send_mass_mail(self, items):
+        with mail.get_connection() as connection:
+            return connection.send_messages(self.generate_messages(items))
+
+    def send_batched_mail(self, items, size=30):
         send_count = 0
 
-        for items in split_every(data, size):
-            send_count += self.send_mass_mail(items)
+        for batch in split_every(items, size):
+            send_count += self.send_mass_mail(batch)
 
         return send_count

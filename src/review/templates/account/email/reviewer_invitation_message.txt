@@ -5,11 +5,15 @@ Thank you for volunteering to review applications for DSSG {{ program_year}}! Yo
 {% if verified %}Please proceed via Appy at {{ activate_url }}{% else %}To confirm this is correct, go to {{ activate_url }}
 
 After confirming your e-mail, you will be signed in to Appy, to which you can always return by visiting {{ domain }}.{% endif %}
+{% if slack_join_url %}
+We will be using the DSSG Alumni Slack workspace to coordinate the review process (and to crowdsource answers where possible). If you're not already a member there, click below to join:
 
-To coordinate, please join the Slack #application-reviewing channel on the DSSG Alumni workspace: https://dssgalumni.slack.com/messages/application-reviewing 
+  {{ slack_join_url }}
+{% if slack_channel_url %}
+And please refer to the #application-reviewing channel:
 
-If you're not on the DSSG Alumni workspace, you can join via this link: {{ slack_url }}
-
+  {{ slack_channel_url }}
+{% endif %}{% endif %}
 We got around 750 applications this year and are looking to get at least 3 reviews for each application. Around 80 of you volunteered to help us, which means ~30 application reviews from each reviewer. We're estimating the total time commitment to be 5-6 hours per person. Of course, we'd love it if you could do as many more than 30 as you can.
 
 * Appy *
@@ -29,12 +33,6 @@ We would really appreciate it if you could finish this first round of applicatio
 • It's difficult to say no, especially when we review applicants who seem like wonderful people, care about the world, and are passionate about DSSG. But, if they're not prepared for DSSG, the outcome isn't good for anyone. Please flag those candidates in your comments – we typically send a special email to them encouraging them to pick up specific skills and apply again.
 
 • Several folks have asked to be recused from reviewing people they know. If you don't want to review someone, simply skip them – (refresh the application review page). If you do know someone who has applied, please tell us what you think about them and if they would be a good fit. All of you know DSSG and what we look for. We want you to use that knowledge and your impression of the applicant to help us.
-{% if slack_url %}
-
-We will be using the DSSG Alumni Slack to answer questions about the review process (and crowdsource answers where possible). If you're not a member there, click below to join.
-
-{{ slack_url }}
-{% endif %}
 
 Thanks everyone for your help and Slack/email us if you have any questions.
 

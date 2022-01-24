@@ -6,7 +6,7 @@ You're receiving this e-mail because you signed up with this e-mail address {{ e
 
 After confirming your e-mail, you will be signed in to Appy, to which you can always return by visiting {{ domain }}.{% endif %}
 
-To coordinate, please join the Slack [#application-reviewing] channel on the DSSG Alumni workspace: https://dssgalumni.slack.com/messages/application-reviewing 
+To coordinate, please join the Slack #application-reviewing channel on the DSSG Alumni workspace: https://dssgalumni.slack.com/messages/application-reviewing 
 
 If you're not on the DSSG Alumni workspace, you can join via this link: {{ slack_url }}
 

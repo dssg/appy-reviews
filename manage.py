@@ -562,6 +562,7 @@ class Develop(DbLocal):
             SLACK_JOIN_URL=None,
             SMTP_USER=None,
             SMTP_PASSWORD=None,
+            WUFOO_API_KEY=None,
         )
 
     def _container_hint(func):

@@ -5,12 +5,13 @@ import itertools
 import os
 import pathlib
 import re
+from urllib.parse import urlencode
 
 import ohio
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
-from pyfoo import PyfooAPI
+from pyfoo import PyfooAPI, SearchParameter
 
 
 class Credentials(str, enum.Enum):
@@ -41,6 +42,8 @@ ENTRY_PAGE_SIZE = 100  # (Also the API default)
 # NOTE: Also, the Wufoo API backend appears to ignore this
 # parameter ANYWAY....
 
+ENTRY_FILTER_COMPLETE = SearchParameter('CompleteSubmission', 'Is_equal_to', '1')
+
 
 class Command(BaseCommand):
 
@@ -63,6 +66,13 @@ class Command(BaseCommand):
             dest='filters',
             metavar='filter',
             help="Regular expression(s) with which to filter forms by name.",
+        )
+        parser.add_argument(
+            '--incomplete',
+            dest='entries_completed',
+            action='store_false',
+            help="Include incomplete submission entries "
+                 f"(see system field {ENTRY_FILTER_COMPLETE.field})",
         )
         parser.add_argument(
             '-n', '--no-database',
@@ -118,8 +128,8 @@ class Command(BaseCommand):
         self.entity_id_field = None
         self.verbosity = None
 
-    def handle(self, target='.', filters=(), write_to_db=True,
-               apply_suffix=True, suffix=None, append=False,
+    def handle(self, target='.', filters=(), entries_completed=True,
+               write_to_db=True, apply_suffix=True, suffix=None, append=False,
                entity_id_field='EntryId', apply_pk=True,
                recreate=False, stage=None,
                verbosity=1, **_options):
@@ -153,7 +163,7 @@ class Command(BaseCommand):
             self.report('=', name, '=')
             self.report('=' * (len(name) + 4))
 
-            entries = stream_entries(form)
+            entries = stream_entries(form, completed=entries_completed)
             fields = list(stream_fields(form))
 
             # Peak ahead for entry column names
@@ -375,14 +385,24 @@ def stream_fields(form):
         yield (field.ID, field.Title)
 
 
-def stream_entries(form, page_size=ENTRY_PAGE_SIZE):
+def make_entries_filter(parameters):
+    # factored from pyfoo.Form.search_entries
+    return urlencode([
+        (f'Filter{count}', f'{param.field}__{param.operator}__{param.value}')
+        for (count, param) in enumerate(parameters, 1)
+    ]).replace('__', '+')
+
+
+def stream_entries(form, completed=True, page_size=ENTRY_PAGE_SIZE):
     """Generate form entries from given Form.
 
     Wraps `get_entries` to handle pagination.
 
     """
+    filter_string = make_entries_filter([ENTRY_FILTER_COMPLETE]) if completed else None
+
     for page_start in itertools.count(step=page_size):
-        entries = form.get_entries(page_start, page_size)
+        entries = form.get_entries(page_start, page_size, filter_string=filter_string)
         yield from entries
 
         if len(entries) < page_size:

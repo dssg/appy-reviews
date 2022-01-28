@@ -1,12 +1,16 @@
 Dear {{ref_first}} {{ref_last}},
 
-{{applicant_first}} {{applicant_last}} has requested a letter of recommendation from you in support of an application for admission to the Data Science for Social Good Fellowship Program at Carnegie Mellon University. The deadline for the recommendation was January 28th and we still have not received your recommendation.  This could be an error if you used a different email address than the one provided to us by the applicant. If you have not submitted the recommendation, please use the link below to submit the recommendation as soon as possible so we can use it in our review process. We will begin reviewing applications Monday, January 31st, so please submit your recommendation before that.
+{{applicant_first}} {{applicant_last}} has requested a letter of recommendation from you in support of an application for admission to the Data Science for Social Good Fellowship Program at Carnegie Mellon University. The deadline for the recommendation was January 28th and we still have not received your recommendation.
+
+This could be an error if you used a different email address than the one provided to us by the applicant.
+
+If you have not submitted the recommendation, please use the link below to submit it as soon as possible so that we can refer to it in our review process. We will begin reviewing applications on Monday, January 31st. Please submit your recommendation before that date.
 
 {{reference_link}}
 
-Thank you for your support of the applicant and the Data Science for Social Good Fellowship.
+Thank you for your support of this applicant and of the Data Science for Social Good Fellowship.
 
 Thank you,
 Data Science for Social Good
 Carnegie Mellon University
-http://www.dssgfellowship.org
+https://www.dssgfellowship.org/

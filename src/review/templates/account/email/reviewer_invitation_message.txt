@@ -1,6 +1,6 @@
 Hello from Appy the DSSG Application Review App!
 
-Thank you for volunteering to review applications for DSSG {{ program_year}}! You're receiving this e-mail because you signed up with this e-mail address {{ email }} to review applications for DSSG {{ program_year }}.
+Thank you for volunteering to review applications for DSSG {{ program_year }}! You're receiving this e-mail because you signed up with this e-mail address {{ email }}.
 
 {% if verified %}Please proceed via Appy at {{ activate_url }}{% else %}To confirm this is correct, go to {{ activate_url }}
 

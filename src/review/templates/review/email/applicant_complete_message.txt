@@ -4,7 +4,7 @@ Thank you for applying to the {{program_year}} Data Science for Social Good Summ
 
 This email confirms that we have received all parts of your application and that we have received recommendations from both of your references.
 
-The application submission period will close on January 28th, after which we will begin reviewing applications. We will notify you about whether or not you will be moving forward in the application process by late February.
+The application submission period ends on January 28th, after which we will begin reviewing applications. We will notify you about whether or not you will be moving forward in the application process by late February.
 
 Thank you,
 Data Science for Social Good

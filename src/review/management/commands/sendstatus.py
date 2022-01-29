@@ -53,9 +53,9 @@ class Command(ApplicationEmailCommand):
                  "two references",
         )
         parser.add_argument(
-            '--complete',
+            '--submitted',
             action='store_true',
-            dest='opt_complete',
+            dest='opt_submitted',
             help="notify applicants with completed applications and at least "
                  "two references",
         )
@@ -98,7 +98,7 @@ class Command(ApplicationEmailCommand):
                  "(prefix: review/email/reference_status)",
         )
 
-    def handle(self, opt_incomplete, opt_unsubmitted, opt_complete, opt_all_applicants,
+    def handle(self, opt_incomplete, opt_unsubmitted, opt_submitted, opt_all_applicants,
                opt_references, opt_references_complete, opt_references_template,
                send_mail, test_emails, debug_sql, verbosity, **_opts):
         self._create_cache = defaultdict(list)
@@ -112,19 +112,19 @@ class Command(ApplicationEmailCommand):
             # This is intended largely for them; but, Rayid handled these, this year
             raise NotImplementedError
 
-        if opt_all_applicants and (opt_incomplete or opt_unsubmitted or opt_complete):
+        if opt_all_applicants and (opt_incomplete or opt_unsubmitted or opt_submitted):
             raise CommandError("redundant argumentation")
 
         if opt_all_applicants:
-            opt_incomplete = opt_unsubmitted = opt_complete = True
+            opt_incomplete = opt_unsubmitted = opt_submitted = True
 
-        if not opt_incomplete and not opt_unsubmitted and not opt_complete and not opt_references:
+        if not opt_incomplete and not opt_unsubmitted and not opt_submitted and not opt_references:
             raise CommandError("nothing to do")
 
         application_statuses = stream_test(test_emails) if test_emails else stream_applications()
 
         to_mail = self.generate_mail(application_statuses,
-                                     opt_incomplete, opt_unsubmitted, opt_complete,
+                                     opt_incomplete, opt_unsubmitted, opt_submitted,
                                      opt_references, opt_references_complete,
                                      opt_references_template)
 
@@ -179,7 +179,7 @@ class Command(ApplicationEmailCommand):
             yield (template, address, context)
 
     def generate_mail(self, application_statuses,
-                      opt_incomplete, opt_unsubmitted, opt_complete,
+                      opt_incomplete, opt_unsubmitted, opt_submitted,
                       opt_references, opt_references_complete,
                       opt_references_template):
         for status in application_statuses:
@@ -235,7 +235,7 @@ class Command(ApplicationEmailCommand):
                         None,
                     )
 
-            elif opt_complete and status.app_completed and not status.email_complete_sent:
+            elif opt_submitted and status.app_completed and not status.email_complete_sent:
                 if status.application_id is None:
                     self.stderr.write(f'E: application not found: {status.app_email}')
                 else:

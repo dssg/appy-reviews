@@ -43,21 +43,23 @@ class Command(ApplicationEmailCommand):
             '--incomplete',
             action='store_true',
             dest='opt_incomplete',
-            help="notify applicants who did not complete their applications (UNIMPLEMENTED)",
+            help="warn applicants who did not complete their applications (UNIMPLEMENTED)",
         )
         parser.add_argument(
             '--unsubmitted',
             action='store_true',
             dest='opt_unsubmitted',
-            help="notify applicants with completed applications but less than "
-                 "two references",
+            help="warn applicants with completed applications but less than "
+                 "two references (template: review/email/applicant_references)",
         )
         parser.add_argument(
             '--submitted',
             action='store_true',
             dest='opt_submitted',
             help="notify applicants with completed applications and at least "
-                 "two references",
+                 "two references "
+                 "(note: will never send more than once per application) "
+                 "(template: review/email/applicant_complete)",
         )
         parser.add_argument(
             '--all-applicants',
@@ -70,7 +72,7 @@ class Command(ApplicationEmailCommand):
             '--references',
             action='store_true',
             dest='opt_references',
-            help="notify recommenders who haven't submitted references for "
+            help="warn recommenders who haven't submitted references for "
                  "applicants (regardless of application completion: see "
                  "--references-complete)",
         )

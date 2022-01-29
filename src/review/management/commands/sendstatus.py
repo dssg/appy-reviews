@@ -61,12 +61,6 @@ class Command(ApplicationEmailCommand):
                  "(note: will never send more than once per application) "
                  "(template: review/email/applicant_complete)",
         )
-        parser.add_argument(
-            '--all-applicants',
-            action='store_true',
-            dest='opt_all_applicants',
-            help="notify all applicants of their statuses (UNIMPLEMENTED)",
-        )
 
         parser.add_argument(
             '--references',
@@ -100,7 +94,7 @@ class Command(ApplicationEmailCommand):
                  "(prefix: review/email/reference_status)",
         )
 
-    def handle(self, opt_incomplete, opt_unsubmitted, opt_submitted, opt_all_applicants,
+    def handle(self, opt_incomplete, opt_unsubmitted, opt_submitted,
                opt_references, opt_references_complete, opt_references_template,
                send_mail, test_emails, debug_sql, verbosity, **_opts):
         self._create_cache = defaultdict(list)
@@ -110,15 +104,9 @@ class Command(ApplicationEmailCommand):
             print(sql_statement())
             return
 
-        if opt_incomplete or opt_all_applicants:
-            # This is intended largely for them; but, Rayid handled these, this year
+        if opt_incomplete:
+            # This was intended largely for them; but, Rayid handled these, this year
             raise NotImplementedError
-
-        if opt_all_applicants and (opt_incomplete or opt_unsubmitted or opt_submitted):
-            raise CommandError("redundant argumentation")
-
-        if opt_all_applicants:
-            opt_incomplete = opt_unsubmitted = opt_submitted = True
 
         if not opt_incomplete and not opt_unsubmitted and not opt_submitted and not opt_references:
             raise CommandError("nothing to do")

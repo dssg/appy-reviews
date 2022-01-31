@@ -14,7 +14,7 @@ And please refer to the #application-reviewing channel:
 
   {{ slack_channel_url }}
 {% endif %}{% endif %}
-We got around 750 applications this year and are looking to get at least 3 reviews for each application. Around 80 of you volunteered to help us, which means ~30 application reviews from each reviewer. We're estimating the total time commitment to be 5-6 hours per person. Of course, we'd love it if you could do as many more than 30 as you can.
+We received nearly 1,000 applications this year and we're looking to get at least 3 reviews for each application. Around 60 of you volunteered to help us, which means ~50 application reviews from each reviewer. We're estimating the total time commitment to be 5-6 hours per person. Of course, we'd love it if you could do as many more than 50 as you can.
 
 * Appy *
 

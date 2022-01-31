@@ -1,1 +1,1 @@
-Confirmation: {{program_year}} DSSG application complete!
+Confirmation: DSSG {{program_year}} application complete!

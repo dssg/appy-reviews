@@ -264,7 +264,7 @@ REVIEW_APPLICATION_FIELDS = {
         ('Program Interests', ('Please consider me for:',)),
         ('Gender Identification', ('What gender do you identify with?',)),
         ('Do you identify as LGBTQ+?', None),
-        ('Race/ethnic identifications', survey.CoalesceKeys(
+        ('Race/ethnic identifications', survey.Coalesce(
             'Asian',
             'Black',
             'Hispanic, Latino, Latina, or Latinx',

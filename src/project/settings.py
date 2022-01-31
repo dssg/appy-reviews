@@ -183,6 +183,8 @@ DEFAULT_FROM_EMAIL = 'DSSG application review <appy@review.dssg.io>'
 
 APPLICATION_REPLY_TO_EMAIL = ('dssg@datascienceforsocialgood.org',)
 
+REVIEWER_REPLY_TO_EMAIL = APPLICATION_REPLY_TO_EMAIL
+
 EMAIL_HOST = 'email-smtp.us-west-2.amazonaws.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True

@@ -17,6 +17,9 @@ class Command(LabelCommand):
         super().__init__(*args, **kwargs)
         self.adapter = get_adapter(None)
 
+        self.reply_to = getattr(settings, 'REVIEWER_REPLY_TO_EMAIL', ())
+        self.headers = {'Reply-To': ', '.join(self.reply_to)} if self.reply_to else None
+
     def add_arguments(self, parser):
         super().add_arguments(parser)
         parser.add_argument(
@@ -85,7 +88,7 @@ class Command(LabelCommand):
             activate_url = site_url + reverse('account_confirm_email',
                                               args=[confirmation.key])
 
-        self.adapter.send_mail(template, email_address.email, {
+        msg = self.adapter.render_mail(template, email_address.email, {
             'user': reviewer,
             'email': email_address.email,
             'activate_url': activate_url,
@@ -95,3 +98,8 @@ class Command(LabelCommand):
             'slack_channel_url': settings.REVIEW_SLACK_CHANNEL_URL,
             'verified': email_address.verified,
         })
+
+        if self.headers:
+            msg.extra_headers.update(self.headers)
+
+        msg.send()

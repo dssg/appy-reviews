@@ -250,26 +250,39 @@ REVIEW_APPLICATION_FIELDS = {
     # FIXME: For many of these, would be at least as easy and
     # FIXME: reliable (if not more so) to use FieldIds....
     f'survey_application_1_{REVIEW_PROGRAM_YEAR}': (
-        'Fellowship Preference', (
-        ('Preference', ("Our DSSGx Turing UK chapter is running an  affiliated DSSGx Turing UK Summer Fellowship. This is being run separately and independently from the main DSSG Summer Fellowship at Carnegie Mellon University and will run from June 15 to September 5 at the University of Warwick.\n\n If you're interested in being considered for that program, please select one of the following options",)),
+        'Basics', (
+        ('Full Name', (('First', 0), ('Last', 0))),
+        ('Email', [('Email', 0)]),
+        ('Program Interests', ('Please consider me for:',)),
+        ('Gender Identification', ('What gender do you identify with?',)),
+        ('Do you identify as LGBTQ+?', None),
+        #('What races or ethnicities do you identify with?', (
+            #'Asian', 'Black', 'Hispanic, Latino, Latina, or Latinx',
+            #'Indigenous, Native, or First Nation',
+            #'Middle Eastern or North African',
+            #'White',
+            #'Prefer not to answer',
+            #'Not listed here or prefer to self-describe',)),
+        ('Physical/other accommodation required?', (
+            '''Do you have a long-lasting or chronic condition '''
+            '''(such as physical, visual, auditory, cognitive, emotional, '''
+            '''or other) that requires ongoing accommodations for you to '''
+            '''conduct daily life activities?''',
+        )),
     )),
     f'survey_application_2_{REVIEW_PROGRAM_YEAR}': (
         'Main', (
-        ('Full Name', (('First', 0), ('Last', 0))),
         ('Preferred Name', None),
-        ('Email', None),
-        ('Phone', None),
         ('Locale', ('City', 'State / Province / Region', 'Country')),
-        ('Citizenship and Visa Status for US', None),
-        ('Self description', ('I am a:',)),
-        ('Gender identification', ('I identify my gender as:',)),
-        ('University Name', None),
+        ('Country of Citizenship and Visa Status for US', None),
+        ('Self-description', ('Which of these best describes you:',)),
+        ('University Name', ('Most Recent University Name',)),
         ('Major/department', None),
         ('Advisor Name', (('First', 1), ('Last', 1))),
         ('Expected Graduation Date (or date when you last graduated)', None),
-        ('Transcripts', ('Upload your unofficial transcripts from your '
-                         'current degree program (or from the most recent '
-                         'degree you have received).',)),
+        ('Transcripts', ('Upload your unofficial transcripts '
+                         '(copy of your grades) from your current degree '
+                         'program (or from the most recent degree you have received).',)),
         ('Computer Programming', None),
         ('Computer Science (Algorithms)', None),
         ('Traditional Statistics', None),
@@ -309,7 +322,7 @@ REVIEW_APPLICATION_FIELDS = {
         ('Neural Networks / Deep Learning', None),
         ('Time Series Models', None),
         ('Unsupervised models', None),
-        ('Semi-Supervised models', None),
+        ('Semi-supervised models', None),
         ('Graphical models', None),
         ('Other', [('Other', 2)]),
         ('Modeling/machine-learning experience', (
@@ -377,6 +390,7 @@ REVIEW_APPLICATION_FIELDS = {
         ('...Public Safety', [('Public Safety', 0)]),
         ('...International Development', [('International Development', 0)]),
         ('...Other', [('Other', 5)]),
+        ('Other experience', ('If experience in problem area is "Other", please describe:',)),
         ('Interested in working on problems related to: Education', [('Education', 1)]),
         ('...Health', [('Health', 1)]),
         ('...Energy', [('Energy', 1)]),
@@ -387,7 +401,7 @@ REVIEW_APPLICATION_FIELDS = {
         ('...Public Safety', [('Public Safety', 1)]),
         ('...International Development', [('International Development', 1)]),
         ('...Other', [('Other', 6)]),
-        ('Other', ('Other:',)),
+        ('Other interest', ('If interest in problem area is "Other", please describe:',)),
         ('Motivation / public sector experience', (
             '''What is it about ‘social good’ work that you find compelling? \n\n'''
             '''Tell us about your past experiences working in (or with) the public sector '''
@@ -451,12 +465,15 @@ REVIEW_APPLICATION_FIELDS = {
             ("Applicant's communication ability", ('Communication ability',)),
             ("Applicant's experience working in teams", ('Experience working in teams',)),
             ("Applicant's interest and passion for social good", ('Interest and passion for social good',)),
-            ('Recommends applicant', (
+            ('Good match for program?', (
                 '''The fellowship is very competitive and we are looking for a '''
-                '''mix of people: smart, quantitative, analytical fellows who '''
-                '''care about using their skills to make a social impact. \n\n'''
-                '''In your opinion, should we accept this applicant?''',
+                '''mix of people: smart, quantitative, analytical individuals who '''
+                '''can work well in a team and who care about using their skills '''
+                '''to make a social impact. \n\n'''
+                '''In your opinion, does this applicant match those qualities and '''
+                '''will this applicant benefit from this program?''',
             )),
+            ('Should we accept this applicant?', None),
             ('What makes applicant stand out', (
                 '''What makes this candidate stand out for you?''',
             )),

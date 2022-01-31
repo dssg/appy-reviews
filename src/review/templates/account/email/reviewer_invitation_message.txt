@@ -24,6 +24,10 @@ This year we will be using Appy, the same home-built application review system a
 
 We would really appreciate it if you could finish this first round of application reviews by February 11th, so you can celebrate National Make A Friend Day (or the Satisfied Staying Single Day) without any guilt. We will be moving people to the interview round on a rolling basis; so, the sooner you submit your reviews, the sooner we are able to schedule interviews. Our goal is to start interviews by February 14th, finish the first round of interviews by Feb 25th, the final round interviews by March 11th, and make decisions by March 15th.
 
+* Confidentiality *
+
+Please keep in mind that all information on the applications is confidential and only to be used for evaluating applicants. No information from the applications should be shared outside of the application process. Because we are committed to creating a diverse and inclusive space in the DSSG summer fellowship, we have collected information from applicants about personal characteristics relating to their demographics and identity. We are sharing this information with reviewers as a part of the application process following research showing that awareness of these attributes reduces bias, while being unaware of them can encourage it. We are trusting you to use this information appropriately and responsibly.
+
 * Reviewing Tips *
 
 • As you all know, we look for a balance of skills. You don't have to be the best programmer or machine learning person but you also must have experience with coding or data analysis. We do use Python so someone coming in with no Python skills would struggle. By getting reliable ratings across skills, we can make sure we get the right mix across the fellows.

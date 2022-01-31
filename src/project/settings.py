@@ -15,6 +15,8 @@ import dj_database_url
 import requests
 from django.utils.log import DEFAULT_LOGGING
 
+from review import survey
+
 
 def bool_environ(key, default=''):
     value = os.getenv(key, default).lower()
@@ -241,6 +243,7 @@ REVIEW_PROGRAM_YEAR = 2022
 REVIEW_SURVEY_LENGTH = 2
 REVIEW_REVIEWER_APPROVED = True
 REVIEW_WHITELIST = set(filter(None, os.getenv('REVIEW_WHITELIST', '').split(' ')))
+
 REVIEW_APPLICATION_FIELDS = {
     # <"page" table>: (
     #       <pretty table name>, (
@@ -259,13 +262,21 @@ REVIEW_APPLICATION_FIELDS = {
         ('Program Interests', ('Please consider me for:',)),
         ('Gender Identification', ('What gender do you identify with?',)),
         ('Do you identify as LGBTQ+?', None),
-        #('What races or ethnicities do you identify with?', (
-            #'Asian', 'Black', 'Hispanic, Latino, Latina, or Latinx',
-            #'Indigenous, Native, or First Nation',
-            #'Middle Eastern or North African',
-            #'White',
-            #'Prefer not to answer',
-            #'Not listed here or prefer to self-describe',)),
+        ('Race/ethnic identifications', survey.CoalesceKeys(
+            'Asian',
+            'Black',
+            'Hispanic, Latino, Latina, or Latinx',
+            'Indigenous, Native, or First Nation',
+            'Middle Eastern or North African',
+            'White',
+            'Prefer not to answer',
+            'Not listed here or prefer to self-describe',
+            sep='; '
+        )),
+        ('Identification Self-description', (
+            'If your race or ethnicity is not listed here or you prefer to '
+            'self-describe, how would you describe your race or ethnicity?',
+        )),
         ('Physical/other accommodation required?', (
             '''Do you have a long-lasting or chronic condition '''
             '''(such as physical, visual, auditory, cognitive, emotional, '''
@@ -278,7 +289,7 @@ REVIEW_APPLICATION_FIELDS = {
         ('Preferred Name', None),
         ('Locale', ('City', 'State / Province / Region', 'Country')),
         ('Country of Citizenship and Visa Status for US', None),
-        ('Self-description', ('Which of these best describes you:',)),
+        ('Academic Self-description', ('Which of these best describes you:',)),
         ('University Name', ('Most Recent University Name',)),
         ('Major/department', None),
         ('Advisor Name', (('First', 1), ('Last', 1))),

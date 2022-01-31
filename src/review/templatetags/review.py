@@ -54,3 +54,13 @@ def render(context, content, **kwargs):
     return template.Template(content).render(
         template.Context(kwargs) if kwargs else context
     )
+
+
+@register.filter('callable')
+def filter_callable(value):
+    return callable(value)
+
+
+@register.filter('call')
+def call_callable(func, arg):
+    return func(arg)

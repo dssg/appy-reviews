@@ -61,6 +61,14 @@ class Command(ApplicationEmailCommand):
                  "(note: will never send more than once per application) "
                  "(template: review/email/applicant_complete)",
         )
+        parser.add_argument(
+            '--all-complete',
+            action='store_true',
+            dest='opt_complete',
+            help="notify all applicants with completed applications "
+                 "(regardless of recommendations) "
+                 "(template: review/email/applicant_review)",
+        )
 
         parser.add_argument(
             '--references',
@@ -94,7 +102,7 @@ class Command(ApplicationEmailCommand):
                  "(prefix: review/email/reference_status)",
         )
 
-    def handle(self, opt_incomplete, opt_unsubmitted, opt_submitted,
+    def handle(self, opt_incomplete, opt_unsubmitted, opt_submitted, opt_complete,
                opt_references, opt_references_complete, opt_references_template,
                send_mail, test_emails, debug_sql, verbosity, **_opts):
         self._create_cache = defaultdict(list)
@@ -108,13 +116,15 @@ class Command(ApplicationEmailCommand):
             # This was intended largely for them; but, Rayid handled these, this year
             raise NotImplementedError
 
-        if not opt_incomplete and not opt_unsubmitted and not opt_submitted and not opt_references:
+        if (not opt_incomplete and not opt_unsubmitted and not opt_submitted and
+            not opt_complete and not opt_references):
             raise CommandError("nothing to do")
 
         application_statuses = stream_test(test_emails) if test_emails else stream_applications()
 
         to_mail = self.generate_mail(application_statuses,
-                                     opt_incomplete, opt_unsubmitted, opt_submitted,
+                                     opt_incomplete, opt_unsubmitted,
+                                     opt_submitted, opt_complete,
                                      opt_references, opt_references_complete,
                                      opt_references_template)
 
@@ -169,7 +179,8 @@ class Command(ApplicationEmailCommand):
             yield (template, address, context)
 
     def generate_mail(self, application_statuses,
-                      opt_incomplete, opt_unsubmitted, opt_submitted,
+                      opt_incomplete, opt_unsubmitted,
+                      opt_submitted, opt_complete,
                       opt_references, opt_references_complete,
                       opt_references_template):
         for status in application_statuses:
@@ -209,6 +220,18 @@ class Command(ApplicationEmailCommand):
                             },
                             status.app_email,
                         )
+
+            if opt_complete and status.app_completed:
+                yield (
+                    'review/email/applicant_review',
+                    status.app_email,
+                    {
+                        'applicant_first': status.app_first,
+                        'applicant_last': status.app_last,
+                        'program_year': settings.REVIEW_PROGRAM_YEAR,
+                    },
+                    None,
+                )
 
             if len(status.references) < 2:
                 if opt_unsubmitted and status.app_completed:

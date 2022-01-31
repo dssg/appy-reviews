@@ -1,12 +1,14 @@
-Hi {{applicant_first}}, 
+Hi {{applicant_first}},
 
-Thank you for applying to the {{program_year}} Data Science for Social Good Summer Fellowship at Carnegie Mellon University! This email confirms that you have completed both parts of the application. 
+Thank you for applying to the {{program_year}} Data Science for Social Good Summer Fellowship at Carnegie Mellon University!
 
-We will be reviewing applications over the next couple weeks, and will let you know whether or not you have moved to the next stage of the application process in late February. For those who do move forward in the process, we plan to schedule interviews between mid-February and mid-March. 
+We have received both parts of your application.
+
+We will be reviewing applications over the next couple weeks, and will let you know by late February whether or not your application has moved to the next stage of the process. For those whose applications do move forward in the process, we plan to schedule interviews between mid-February and mid-March.
 
 Thanks again for applying and for your interest in using data science to make the world better!
 
 Thank you,
 Data Science for Social Good
 Carnegie Mellon University
-http://www.dssgfellowship.org
+https://www.dssgfellowship.org/

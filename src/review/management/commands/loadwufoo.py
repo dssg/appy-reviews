@@ -26,16 +26,17 @@ class Credentials(str, enum.Enum):
 
 # regular expressions to identify forms to load
 # and to capture their canonical names (case-insensitive)
+
+RECOMMENDATION_FORM = r'^(\d+) dssg fellow (recommendation) form$'
+
+APPLICATION_FORM = r'^(\d+) dssg fellowship (application)(?:(?:[- ]+part)? (\d))?$'
+
+REVIEWER_FORM = r'^(\d+) dssg application (reviewer)(?: and scoper)? (?:registration|signup)$'
+
 FORMS = (
-    # recommendation form
-    r'^(\d+) dssg fellow (recommendation) form$',
-
-    # application form(s)
-    r'^(\d+) dssg fellowship (application)'
-    r'(?:(?:[- ]+part)? (\d))?$',
-
-    # reviewer form
-    r'^(\d+) dssg application (reviewer)(?: and scoper)? (?:registration|signup)$',
+    RECOMMENDATION_FORM,
+    APPLICATION_FORM,
+    REVIEWER_FORM,
 )
 
 ENTRY_PAGE_SIZE = 100  # (Also the API default)
@@ -143,7 +144,7 @@ class Command(BaseCommand):
         elif stage == 'review':
             filters.extend((
                 f'^{settings.REVIEW_PROGRAM_YEAR} ',
-                'reviewer (?:registration|signup)|fellow recommendation',
+                f'{RECOMMENDATION_FORM}|{REVIEWER_FORM}',
             ))
             if target == '.':
                 target = '-'

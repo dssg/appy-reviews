@@ -315,9 +315,9 @@ class Command(BaseCommand):
 
                     setattr(concession, key, value1)
 
-                if must_update:
-                    maybe_invite = is_reviewer and not was_reviewer
+                maybe_invite = is_reviewer and not was_reviewer
 
+                if must_update:
                     concession.save(update_fields=tuple(reviewer_election))
                     concessions_updated += 1
 

@@ -385,6 +385,76 @@ class Application(models.Model):
 # SurveyEntries
 #
 
+class StaleEntryManager:
+
+    # note: *could* perhaps easily run queries which run over multiple linked
+    # tables at a time.
+    #
+    # (however, really no need at all for this at the moment.)
+    #
+    # e.g.: provide only program_year;
+    #       look up distinct signatures (select distinct table_name, column_name
+    #                                    from application_page join application
+    #                                    using (application_id)
+    #                                    where program_year=2022);
+    #       union results of per-table query;
+    #       etc.
+
+    def __init__(self, manager, table_name, column_name):
+        self.manager = manager
+        self.table_name = table_name
+        self.column_name = column_name
+
+    def __repr__(self):
+        return f'<{self.__class__.__name__}: ({self.table_name!r}, {self.column_name!r})>'
+
+    @property
+    def _meta(self):
+        return self.manager.model._meta
+
+    def _select_query(self, select='model.*'):
+        return f'''\
+            select {select} from {self._meta.db_table} model
+            left outer join {self.table_name} entry on (
+                model.entity_code = entry."{self.column_name}"
+            )
+            where model.table_name = '{self.table_name}' and
+                  model.column_name = '{self.column_name}' and
+                  entry."{self.column_name}" is null
+        '''
+
+    def all(self):
+        return self.manager.raw(self._select_query())
+
+    def count(self):
+        with connection.cursor() as cursor:
+            cursor.execute(self._select_query('count(1)'))
+            (count,) = cursor.fetchone()
+
+        return count
+
+    def delete(self):
+        with connection.cursor() as cursor:
+            cursor.execute(f'''\
+                delete from {self._meta.db_table} model
+                using {self._meta.db_table} stale
+                left outer join {self.table_name} entry on (
+                    stale.entity_code = entry."{self.column_name}"
+                )
+                where model.{self._meta.pk.name} = stale.{self._meta.pk.name} and
+                      stale.table_name = '{self.table_name}' and
+                      stale.column_name = '{self.column_name}' and
+                      entry."{self.column_name}" is null
+            ''')
+            return cursor.rowcount
+
+
+class SurveyEntryManager(models.Manager):
+
+    def stale(self, table_name, column_name):
+        return StaleEntryManager(self, table_name, column_name)
+
+
 class SurveyEntry(models.Model):
 
     table_name = models.CharField(max_length=300)
@@ -392,6 +462,8 @@ class SurveyEntry(models.Model):
     entity_code = models.CharField(max_length=200)
     application = models.ForeignKey('review.Application', on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
+
+    objects = SurveyEntryManager()
 
     class Meta:
         abstract = True

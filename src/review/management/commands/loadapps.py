@@ -178,7 +178,7 @@ class Command(BaseCommand):
         ((applicant_email_field,),) = cursor
 
         # load application pages
-        page_processed = page_created = 0
+        page_processed = page_created = page_updated = page_deleted = 0
         survey_table_names = () if (closed or invite_only) else (
             self.survey_1_table_name,
             self.survey_2_table_name,
@@ -196,13 +196,24 @@ class Command(BaseCommand):
                 page_signature = dict(survey_signature, entity_code=entity_id)
                 with transaction.atomic():
                     (applicant, _created) = models.Applicant.objects.get_or_create(email=applicant_email)
-                    if not models.ApplicationPage.objects.filter(**page_signature).exists():
+                    try:
+                        application_page = models.ApplicationPage.objects.get(**page_signature)
+                    except models.ApplicationPage.DoesNotExist:
                         (application, _created) = applicant.applications.get_or_create(program_year=year)
                         application.applicationpage_set.create(**page_signature)
                         page_created += 1
+                    else:
+                        if application_page.application.applicant != applicant:
+                            # page was *corrected*
+                            (application, _created) = applicant.applications.get_or_create(program_year=year)
+                            application_page.application = application
+                            application_page.save(update_fields=['application'])
+                            page_updated += 1
+
+            page_deleted += models.ApplicationPage.objects.stale(**survey_signature).delete()
 
         # load recommendation(s)
-        recommendation_processed = recommendation_created = 0
+        recommendation_processed = recommendation_created = recommendation_updated = recommendation_deleted = 0
         recommendation_signature = {
             'table_name': self.recommendation_table_name,
             'column_name': entity_id_field,
@@ -215,17 +226,29 @@ class Command(BaseCommand):
                 from "{self.recommendation_table_name}"
             ''')
             recommendation_rows = cursor
-        for (recommendation_processed, (entity_id, applicant_email)) in enumerate(cursor, recommendation_processed + 1):
+        for (recommendation_processed, (entity_id, applicant_email)) in enumerate(recommendation_rows, recommendation_processed + 1):
             entity_signature = dict(recommendation_signature, entity_code=entity_id)
             with transaction.atomic():
                 (applicant, _created) = models.Applicant.objects.get_or_create(email=applicant_email)
-                if not models.Reference.objects.filter(**entity_signature).exists():
+                try:
+                    recommendation = models.Reference.objects.get(**entity_signature)
+                except models.Reference.DoesNotExist:
                     (application, _created) = applicant.applications.get_or_create(program_year=year)
                     application.reference_set.create(**entity_signature)
                     recommendation_created += 1
+                else:
+                    if recommendation.application.applicant != applicant:
+                        # recommendation was *corrected*
+                        (application, _created) = applicant.applications.get_or_create(program_year=year)
+                        recommendation.application = application
+                        recommendation.save(update_fields=['application'])
+                        recommendation_updated += 1
+
+        if not invite_only:
+            recommendation_deleted += models.Reference.objects.stale(**recommendation_signature).delete()
 
         # load reviewer concessions
-        concessions_processed = concessions_created = 0
+        concessions_processed = concessions_created = concessions_updated = 0
 
         if closed or invite_only:
             # FIXME: static field IDs
@@ -277,17 +300,35 @@ class Command(BaseCommand):
                 )
 
             if created:
-                if concession.is_reviewer or concession.is_interviewer:
-                    if not email_ignore or reviewer_email.lower() not in email_ignore:
-                        invitation_emails.append(reviewer_email)
+                maybe_invite = concession.is_reviewer or concession.is_interviewer
 
                 concessions_created += 1
+            else:
+                is_reviewer = was_reviewer = must_update = False
+
+                for (key, value1) in reviewer_election.items():
+                    value0 = getattr(concession, key)
+
+                    is_reviewer = is_reviewer or value1
+                    was_reviewer = was_reviewer or value0
+                    must_update = must_update or value0 != value1
+
+                    setattr(concession, key, value1)
+
+                if must_update:
+                    maybe_invite = is_reviewer and not was_reviewer
+
+                    concession.save(update_fields=tuple(reviewer_election))
+                    concessions_updated += 1
+
+            if maybe_invite and (not email_ignore or reviewer_email.lower() not in email_ignore):
+                invitation_emails.append(reviewer_email)
 
         self.write_table([
-            ('entity', 'processed', 'written'),
-            ('application pages', page_processed, page_created),
-            ('recommendations', recommendation_processed, recommendation_created),
-            ('reviewer concessions', concessions_processed, concessions_created),
+            ('entity', 'processed', 'written', 'updated', 'deleted'),
+            ('application pages', page_processed, page_created, page_updated, page_deleted),
+            ('recommendations', recommendation_processed, recommendation_created, recommendation_updated, recommendation_deleted),
+            ('reviewer concessions', concessions_processed, concessions_created, concessions_updated, '-'),
         ], 'results')
 
         if dry_run:

@@ -125,6 +125,7 @@ class DNS(Local):
         zone = 'dssg.io.'
         fqdn = f'review.{zone}'
         fqdn_s = f's.{fqdn}'
+        fqdn_a = f'appy.{fqdn}'
 
     class CName(StrEnum):
 
@@ -155,6 +156,7 @@ class DNS(Local):
             'list-hosted-zones',
             '--query', f"HostedZones[?Name == '{cls.Domain.zone}']",
         ] | cls.local['jq'][
+            '-r',
             '.[0].Id',
         ]
 
@@ -246,6 +248,64 @@ class DNS(Local):
                     )
                 ) % (self.fqdn, target_cname),
             ]
+
+    class Leader(Local):
+        """manage utility instance DNS"""
+
+        @localmethod
+        def show(self):
+            """look up autoscaling group leader's public IP address"""
+            yield self.local['aws'][
+                'elasticbeanstalk',
+                'describe-environment-resources',
+                '--environment-name', 'appy-reviews-pro',
+            ] | self.local['jq'][
+                '-r',
+                '.EnvironmentResources.Instances[].Id',
+            ] | self.local['sort'] | self.local['head']['-1'] | self.local['xargs'][
+                'aws',
+                'ec2',
+                'describe-instances',
+                '--instance-ids',  # (xargs instance)
+            ] | self.local['jq'][
+                '-r',
+                '.Reservations[].Instances[].PublicIpAddress',
+            ]
+
+        @localmethod('ip_address', metavar='instance-ip',
+                     help='public IP address of the leader instance (see "show")')
+        def set(self, args):
+            """set the utility instance DNS name to the leader IP address"""
+            # NOTE: show and set do *not* compose only because the former must
+            # query the application account and the latter the DNS account.
+            #
+            # This is lame.
+            #
+            # (It could perhaps be improved but will do for now....)
+            #
+            with self[-1].profile_hint():
+                (_retcode, output, _error) = yield self[-1].prepare_hosted_zone()
+                hosted_zone = output.strip() if output is not None else 'DRY-RUN'
+
+                yield self.local['aws'][
+                    'route53',
+                    'change-resource-record-sets',
+                    '--hosted-zone-id', hosted_zone,
+                    '--change-batch', '''{
+                        "Changes": [{
+                            "Action": "UPSERT",
+                            "ResourceRecordSet": {
+                                "Name": "%(name)s",
+                                "Type": "A",
+                                "TTL": 300,
+                                "ResourceRecords": [{"Value": "%(target)s"}]
+                            }
+                        }]
+                    }''' % {
+                        'name': self[-1].Domain.fqdn_a,
+                        'target': args.ip_address,
+                    },
+                ]
 
 
 @Appy.register

@@ -10,7 +10,7 @@ from terminaltables import AsciiTable
 
 from review.models import InterviewAssignment
 
-from base import ApplicationEmailCommand, split_every
+from .base import ApplicationEmailCommand, split_every
 
 
 def round_ordinal(n):
@@ -36,7 +36,7 @@ EMAIL_PATTERN = re.compile(
     re.I
 )
 
-EMAIL_RECIPIENT_PATTERN = re.compile(r'([^ <>]+) +([^ <>]+) *<([^>]+)>')
+EMAIL_RECIPIENT_PATTERN = re.compile(r'([^<>]+) +([^ <>]+) *<([^>]+)>')
 
 
 RecipientBase = collections.namedtuple(
@@ -187,13 +187,12 @@ class Command(ApplicationEmailCommand):
             )
 
     def get_test_recipients(self, test_recipients, interview_round=None):
-        interview_round = interview_round or 1
         recipient_stream = split_every(test_recipients, 2, remainder=split_every.EXCLUDE)
         for (applicant, reviewer) in recipient_stream:
             yield (
                 applicant,
                 Interviewer(*reviewer, association='Test Fellow'),
-                interview_round,
+                (interview_round or 1),
                 None,
             )
 

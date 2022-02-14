@@ -51,46 +51,34 @@ class ApplicationEmailCommand(BaseCommand):
         super().__init__(*args, **kwargs)
         self.adapter = ApplicationAdapter()
 
-    @classmethod
-    def make_message_args(cls, template_prefix, email, context, cc=None, reply_to=None, headers=None):
-        if headers is None:
-            headers = {}
+    def make_message(self, template_prefix, email, context, cc=None, reply_to=None):
+        # allauth really dragging their feet on exposing EmailMessage interface...
+        #
+        # headers, at least, added; but, only yet in master.
+        # regardless, we need access to cc and reply_to.
+        #
+        # (Note: setting cc/bcc only in headers modifies *only* the headers.
+        # We also need to populate recipients() for the server, which checks
+        # attributes: to, cc and bcc.)
+        #
+        # for now, we'll add in extras after the fact:
+        #
+        msg = self.adapter.render_mail(template_prefix, email, context)
 
-        if reply_to is None:
-            reply_to = cls.default_reply_to_email
+        msg.reply_to.extend(self.default_reply_to_email if reply_to is None else reply_to)
 
-        for (name, value) in (('Cc', cc), ('Reply-To', reply_to)):
-            if value:
-                headers[name] = value if isinstance(value, str) else ', '.join(value)
+        if cc is not None:
+            msg.cc.extend(cc)
 
-        return (template_prefix, email, context, headers)
+        return msg
 
     def send_mail(self, *args, **kwargs):
-        # (see below TODO)
-        # message_args = self.make_message_args(*args, **kwargs)
-        # msg = self.adapter.render_mail(*message_args)
-        (*message_args, headers) = self.make_message_args(*args, **kwargs)
-        msg = self.adapter.render_mail(*message_args)
-        msg.extra_headers.update(headers)
+        msg = self.make_message(*args, **kwargs)
         msg.send()
 
     def generate_messages(self, items):
         for item in items:
-            # TODO: allauth *really* dragging their feet on exposing EmailMessage interface...
-            #
-            # headers, at least, added; but, only yet in master.
-            #
-            # once merged, this should work fine:
-            #
-            #     message_args = self.make_message_args(*item)
-            #     yield self.adapter.render_mail(*message_args)
-            #
-            # until then, we'll add in headers after the fact:
-            #
-            (*message_args, headers) = self.make_message_args(*item)
-            message = self.adapter.render_mail(*message_args)
-            message.extra_headers.update(headers)
-            yield message
+            yield self.make_message(*item)
 
     def send_mass_mail(self, items):
         with mail.get_connection() as connection:
@@ -99,7 +87,8 @@ class ApplicationEmailCommand(BaseCommand):
     def send_batched_mail(self, items, size=30):
         send_count = 0
 
-        for batch in split_every(items, size):
-            send_count += self.send_mass_mail(batch)
+        with mail.get_connection() as connection:
+            for batch in split_every(items, size):
+                send_count += connection.send_messages(self.generate_messages(batch))
 
         return send_count

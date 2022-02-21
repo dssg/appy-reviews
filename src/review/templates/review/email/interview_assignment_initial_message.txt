@@ -10,9 +10,9 @@ About the interview: Please allocate about an hour for the interview and find a 
 
 Bear in mind that your interviewer may not be able to answer all your questions about this year's fellowship (project details, start dates, etc.) since they may not be intimately involved with planning for this summer. Feel free to email us any questions they can't answer and we'll be happy to answer them, and be patient with us as we make decisions and get back to you after the interviews.
 
-Again, congratulations on being shortlisted. We're excited to move on to the first round of interviews and look forward to talking with you.
+Again, congratulations on being shortlisted. We're excited to move on to the {{ round_ordinal }} round of interviews and look forward to talking with you.
 
 Regards,
 Data Science for Social Good Fellowship Team
 Carnegie Mellon University
-dssgfellowship.org
+https://dssgfellowship.org/

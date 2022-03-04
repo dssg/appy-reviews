@@ -1,6 +1,6 @@
 Dear {{ applicant.first_name }} {{ applicant.last_name }},
 
-Congratulations! After our {{ previous_round_ordinal }} round of interviews, we are happy to tell you that you've progressed to the {{ round_ordinal }} (and final) interview round for the {{ program_year }} Data Science for Social Good Fellowship at Carnegie Mellon University. You should be proud of your work, application, and interview. 
+Congratulations! After our {{ previous_round_ordinal }} round of interviews, we are happy to tell you that you've progressed to the {{ round_ordinal }} (and final) interview round for the {{ program_year }} Data Science for Social Good Fellowship at Carnegie Mellon University. You should be proud of your work, application, and interview.
 
 As before, we have recruited DSSG organizers and mentors from previous years to assist with interviews in this round. We will be conducting these interviews via Zoom (or another video conference tool) over the next week.
 

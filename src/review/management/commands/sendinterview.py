@@ -217,8 +217,7 @@ class Command(ApplicationEmailCommand):
                         },
                         (                                                       # cc: addresses
                             reviewer.email,
-                            'info@datascienceforsocialgood.org',
-                        ),
+                        ) + settings.INTERVIEW_CC_EMAIL,
                     )
                     for (applicant, reviewer, interview_round) in igetitems(recipients, slice(3))
                 )

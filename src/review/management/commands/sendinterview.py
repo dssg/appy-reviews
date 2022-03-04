@@ -4,7 +4,7 @@ import enum
 import re
 
 from django.conf import settings
-from django.db import connection
+from django.db import connection, ProgrammingError
 from django.db.models.functions import Now
 from terminaltables import AsciiTable
 
@@ -138,6 +138,34 @@ class Command(ApplicationEmailCommand):
             for row in cursor:
                 yield Interviewer(*row)
 
+    def search_reviewer(self, email, start=None, stop=2017):
+        if start is None:
+            start = settings.REVIEW_PROGRAM_YEAR - 1
+
+        with connection.cursor() as cursor:
+            for year in range(start, stop, -1):
+                try:
+                    cursor.execute(f'''\
+                        select "Field1" as first_name,
+                               "Field2" as last_name,
+                               "Field3" as email,
+                               "Field4" as association
+                        from survey_reviewer_{year}
+                        where "Field3" ilike %s
+                    ''', [email])
+                except ProgrammingError:
+                    # should be that table for this year does not exist
+                    continue
+
+                try:
+                    row = next(iter(cursor))
+                except StopIteration:
+                    pass
+                else:
+                    return Interviewer(*row)
+
+        raise LookupError(email)
+
     def get_recipients(self, interview_round=None):
         assignments_queryset = InterviewAssignment.objects.current_year().filter(notified=None)
 
@@ -168,16 +196,22 @@ class Command(ApplicationEmailCommand):
             # FIXME: (since this may change over time, perhaps could be thrown
             # FIXME: onto the ReviewerConcession?)
             #
-            # We'll preload these for efficiency.
+            # We'll preload these for efficiency (reviewer.email + get_all_reviewers) ...
             interviewer_email = assignment.reviewer.email
             try:
                 interviewer = all_reviewers[interviewer_email.lower()]
             except KeyError:
-                self.stderr.write(
-                    f'[WARN] ignoring assignment {assignment.pk} '
-                    f'to unregistered reviewer: {interviewer_email}'
-                )
-                continue
+                # ... and then do a search through previous surveys to fill in gaps
+                try:
+                    interviewer = self.search_reviewer(interviewer_email)
+                except LookupError:
+                    self.stderr.write(
+                        f'[WARN] ignoring assignment {assignment.pk} '
+                        f'to unregistered reviewer: {interviewer_email}'
+                    )
+                    continue
+                else:
+                    all_reviewers[interviewer_email.lower()] = interviewer
 
             yield (
                 Recipient(*applicant_info),

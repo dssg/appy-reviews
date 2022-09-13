@@ -2,6 +2,19 @@
 
 Getting the apps into the Appy.
 
+[TIP]
+====
+ETL has been automated via cron in the Elastic Beanstalk cluster.
+
+As such, ETL-specific set-up of your local machine is no longer necessary; and, cron commands do not use the argcmdr `manage` command.
+
+Nonetheless, careful review of the ETL crontab is necessary each year, to ensure that it is suited to current expectations.
+
+And, the below documentation (and the argcmdr `manage.py`) are suggested background materials for understanding Appy ETL and its crontab.
+
+See: link:../.ebextensions/cron-leader.config[cron-leader.config].
+====
+
 As with many of Appy's management commands, ETL is implemented within Appy's Django framework; _and_, argcmdr management commands are available to handle common invocations of these, as well as to factor out execution via Docker container. This way, the application may be managed from an appropriately configured, local shell.
 
 Note that, in addition to the local set-up described in README.md, it is assumed that the local environment has been configured with appropriate variables, here mainly relating to the remote target database:

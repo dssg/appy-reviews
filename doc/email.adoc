@@ -1,6 +1,21 @@
 = Email with Appy
 :toc:
 
+[TIP]
+====
+Email has been automated via cron in the Elastic Beanstalk cluster.
+
+Nonetheless, careful review of the email crontab is necessary each year, to ensure that it is suited to current expectations.
+
+For that reason, the cron email command features a "year check." The command checks the environment variable `YEAR_CHECK` against the current year (_e.g._ `2022`); if the flag `--force|-f` is not supplied, and the environment variable does not match the current year, the command will not execute.
+
+Having verified the email crontab, the `YEAR_CHECK` variable may be set to the current year via the crontab itself.
+
+And, the below documentation is suggested background material for understanding Appy emails and their crontab.
+
+See: link:../.ebextensions/cron-leader.config[cron-leader.config].
+====
+
 [NOTE]
 ====
 As of yet, there is no argcmdr `manage` command for execution of these, (unlike with ETL). As such, these commands require a locally-running development container:
